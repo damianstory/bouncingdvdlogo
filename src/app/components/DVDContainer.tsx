@@ -118,7 +118,7 @@ const DVDContainer: React.FC = () => {
     gif: null,
     startTime: 0,
     duration: 30000, // 30 seconds minimum
-    quality: 'medium'
+    quality: 'high'
   });
   
   // Custom image reference
@@ -719,7 +719,7 @@ const DVDContainer: React.FC = () => {
         {/* Main container with enhanced shadow and rounded edges */}
         <div 
           ref={containerRef}
-          className={`relative overflow-hidden bg-white ${isFullScreen 
+          className={`relative overflow-hidden bg-slate-50 ${isFullScreen 
             ? '' 
             : 'rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] border border-gray-100 transition-all duration-300'}`}
           style={{ 
@@ -759,7 +759,7 @@ const DVDContainer: React.FC = () => {
                 className={`px-6 py-3 rounded-lg transition-all duration-200 ${
                   selectedFormat === '9:16' 
                     ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-slate-50 border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 9:16
@@ -769,7 +769,7 @@ const DVDContainer: React.FC = () => {
                 className={`px-6 py-3 rounded-lg transition-all duration-200 ${
                   selectedFormat === '1:1' 
                     ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-slate-50 border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 1:1
@@ -779,51 +779,12 @@ const DVDContainer: React.FC = () => {
                 className={`px-6 py-3 rounded-lg transition-all duration-200 ${
                   selectedFormat === '16:9' 
                     ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-slate-50 border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 16:9
               </button>
             </div>
-            
-            {/* GIF Quality selector */}
-            {customImage && (
-              <div className="mb-6">
-                <p className="text-sm font-medium mb-2 text-gray-700">GIF Quality</p>
-                <div className="flex justify-center gap-3">
-                  <button 
-                    onClick={() => handleQualityChange('low')}
-                    className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      gifQuality === 'low' 
-                        ? 'bg-indigo-600 text-white shadow-md' 
-                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Low
-                  </button>
-                  <button 
-                    onClick={() => handleQualityChange('medium')}
-                    className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      gifQuality === 'medium' 
-                        ? 'bg-indigo-600 text-white shadow-md' 
-                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Medium
-                  </button>
-                  <button 
-                    onClick={() => handleQualityChange('high')}
-                    className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      gifQuality === 'high' 
-                        ? 'bg-indigo-600 text-white shadow-md' 
-                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    High
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
           
           {/* Main action buttons */}
@@ -831,7 +792,7 @@ const DVDContainer: React.FC = () => {
             {/* Full Screen button */}
             <button
               onClick={toggleFullScreen}
-              className="w-full bg-white border border-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+              className="w-full bg-slate-50 border border-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
             >
               Full Screen Mode
             </button>
@@ -847,7 +808,7 @@ const DVDContainer: React.FC = () => {
             ) : (
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="w-full bg-white border border-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                className="w-full bg-slate-50 border border-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 Upload Your Logo
               </button>
@@ -866,7 +827,7 @@ const DVDContainer: React.FC = () => {
       {/* Format selection modal with improved styles */}
       {showFormatModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
+          <div className="bg-slate-50 rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Select Format</h2>
             <div className="grid grid-cols-3 gap-4 mb-6">
               <button 
@@ -907,7 +868,7 @@ const DVDContainer: React.FC = () => {
       {/* Upload modal with improved styles */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
+          <div className="bg-slate-50 rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
             <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Upload Your Logo</h2>
             <div className="mb-8 p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
               <input 
@@ -940,7 +901,7 @@ const DVDContainer: React.FC = () => {
       {/* Download modal with improved styles */}
       {showDownloadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
+          <div className="bg-slate-50 rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
             <h2 className="text-2xl font-bold mb-4 text-gray-800 text-center">Creating Your GIF</h2>
             
             <div className="mb-6">

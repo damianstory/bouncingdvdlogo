@@ -59,24 +59,31 @@ body {
 }
 
 /* Additional utility classes */
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-  
-  .glass-effect {
-    @apply bg-white bg-opacity-70 backdrop-blur-lg border border-white border-opacity-20;
-  }
-  
-  .hover-scale {
-    @apply transition-transform duration-200 hover:scale-105;
-  }
-  
-  .custom-shadow {
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
-  
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600;
-  }
+.text-balance {
+  text-wrap: balance;
+}
+
+.glass-effect {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hover-scale {
+  transition-property: transform;
+  transition-duration: 200ms;
+}
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.custom-shadow {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, #4f46e5, #7e22ce);
 }
