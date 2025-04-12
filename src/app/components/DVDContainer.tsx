@@ -106,7 +106,7 @@ const DVDContainer: React.FC = () => {
   const animationStateRef = useRef<AnimationState>({
     position: { x: 0, y: 0 },
     direction: { x: 1, y: 1 },
-    color: { start: '#ff0000', end: '#00ff00' },
+    color: { start: '#4361ee', end: '#3a0ca3' },
     size: 72
   });
   
@@ -198,16 +198,16 @@ const DVDContainer: React.FC = () => {
   }, [customImage]);
 
   const loadingColors = [
-    'bg-red-500',
-    'bg-red-400',
-    'bg-yellow-400',
-    'bg-yellow-300',
-    'bg-yellow-200',
-    'bg-green-200',
-    'bg-green-300',
-    'bg-green-400',
-    'bg-green-500',
-    'bg-green-600',
+    'bg-blue-500',
+    'bg-blue-400',
+    'bg-indigo-500',
+    'bg-indigo-400',
+    'bg-purple-500',
+    'bg-purple-400',
+    'bg-violet-500',
+    'bg-violet-400',
+    'bg-violet-300',
+    'bg-violet-200',
   ];
 
   const handleFormatSelect = (format: AspectRatio) => {
@@ -388,14 +388,14 @@ const DVDContainer: React.FC = () => {
             y: initialY
           },
           direction: { x: 1, y: 1 },
-          color: { start: '#4ade80', end: '#3b82f6' }, // Initial green to blue gradient
+          color: { start: '#4361ee', end: '#3a0ca3' }, // Initial blue gradients
           size: logoRect.width
         };
         
         // Store initial state for loop creation
         gifGenerationRef.current.initialPosition = { x: initialX, y: initialY };
         gifGenerationRef.current.initialDirection = { x: 1, y: 1 };
-        gifGenerationRef.current.initialColor = { start: '#4ade80', end: '#3b82f6' };
+        gifGenerationRef.current.initialColor = { start: '#4361ee', end: '#3a0ca3' };
       }
       
       const settings = qualitySettings[gifGenerationRef.current.quality];
@@ -706,11 +706,22 @@ const DVDContainer: React.FC = () => {
   const dimensions = getContainerDimensions(selectedFormat);
 
   return (
-    <div className={`flex flex-col items-center justify-center py-8 px-4 ${isFullScreen ? 'fixed inset-0 z-50 bg-black m-0 p-0' : 'min-h-screen bg-gray-100'}`}>
-      <div style={{ position: 'relative' }}>
+    <div className={`flex flex-col items-center justify-center min-h-screen ${isFullScreen ? 'fixed inset-0 z-50 bg-black m-0 p-0' : 'py-12 px-4 bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+      {/* App header - not shown in fullscreen mode */}
+      {!isFullScreen && (
+        <div className="w-full max-w-4xl mx-auto mb-8 text-center">
+          <h1 className="text-4xl font-bold text-indigo-900 mb-2">DVD Logo GIF Generator</h1>
+          <p className="text-gray-600 text-lg">Create nostalgic bouncing DVD logo animations</p>
+        </div>
+      )}
+    
+      <div className="relative">
+        {/* Main container with enhanced shadow and rounded edges */}
         <div 
           ref={containerRef}
-          className={`relative overflow-hidden bg-white ${isFullScreen ? '' : 'rounded-md shadow-xl border border-gray-200 mb-6'}`}
+          className={`relative overflow-hidden bg-white ${isFullScreen 
+            ? '' 
+            : 'rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] border border-gray-100 transition-all duration-300'}`}
           style={{ 
             width: isFullScreen ? '100vw' : getContainerDimensions(selectedFormat).width, 
             height: isFullScreen ? '100vh' : getContainerDimensions(selectedFormat).height 
@@ -730,168 +741,175 @@ const DVDContainer: React.FC = () => {
       {isFullScreen && (
         <button
           onClick={toggleFullScreen}
-          className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-black bg-opacity-70 text-white px-4 py-2 rounded hover:bg-opacity-90"
-          style={{ position: 'fixed', bottom: '20px' }}
+          className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-indigo-700 transition-all duration-200"
         >
-          Minimize
+          Exit Full Screen
         </button>
       )}
       
-      {/* Only show controls when not in full screen mode */}
+      {/* Controls container - only show when not in full screen mode */}
       {!isFullScreen && (
-        <>
+        <div className="w-full max-w-md mx-auto mt-10 mb-6">
           {/* Format selection text and buttons */}
-          <div className="text-center mb-4">
-            <p className="text-xl font-medium mb-4">What format would you like this in?</p>
-            <div className="flex justify-center mb-4" style={{ gap: "5px", marginBottom: '10px' }}>
+          <div className="text-center mb-6">
+            <p className="text-xl font-medium mb-4 text-gray-800">Choose your format</p>
+            <div className="flex justify-center gap-3 mb-6">
               <button 
                 onClick={() => handleFormatSelect('9:16')}
-                className={`border-2 ${selectedFormat === '9:16' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
+                className={`px-6 py-3 rounded-lg transition-all duration-200 ${
+                  selectedFormat === '9:16' 
+                    ? 'bg-indigo-600 text-white shadow-md' 
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
               >
                 9:16
               </button>
               <button 
                 onClick={() => handleFormatSelect('1:1')}
-                className={`border-2 ${selectedFormat === '1:1' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
+                className={`px-6 py-3 rounded-lg transition-all duration-200 ${
+                  selectedFormat === '1:1' 
+                    ? 'bg-indigo-600 text-white shadow-md' 
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
               >
                 1:1
               </button>
               <button 
                 onClick={() => handleFormatSelect('16:9')}
-                className={`border-2 ${selectedFormat === '16:9' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
+                className={`px-6 py-3 rounded-lg transition-all duration-200 ${
+                  selectedFormat === '16:9' 
+                    ? 'bg-indigo-600 text-white shadow-md' 
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
               >
                 16:9
               </button>
             </div>
             
-            {/* Buttons row with consistent vertical padding */}
-            <div className="flex flex-col items-center justify-center mx-auto my-4" style={{ width: 'calc(3 * 80px + 10px)' }}>
-              {/* Full Screen button - now first */}
-              <button
-                onClick={toggleFullScreen}
-                className="border-2 border-black rounded-none py-2 px-8 bg-gray-100 hover:bg-gray-200 w-full mb-4"
-              >
-                Full Screen
-              </button>
-              
-              {/* Conditional: Upload or Download button - now second */}
-              {customImage ? (
-                <button
-                  onClick={handleDownloadGIF}
-                  className="border-2 border-black rounded-none py-2 px-8 bg-green-500 hover:bg-green-600 text-white font-medium w-full"
-                >
-                  Download GIF
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowUploadModal(true)}
-                  className="border-2 border-black rounded-none py-2 px-8 bg-gray-100 hover:bg-gray-200 w-full"
-                >
-                  Upload Your Logo
-                </button>
-              )}
-            </div>
-            
-            {/* Context paragraph - only for custom image */}
+            {/* GIF Quality selector */}
             {customImage && (
-              <p className="text-gray-600 mt-2">
-                Watch your logo bounce! When you're ready, download it as a GIF.
-              </p>
+              <div className="mb-6">
+                <p className="text-sm font-medium mb-2 text-gray-700">GIF Quality</p>
+                <div className="flex justify-center gap-3">
+                  <button 
+                    onClick={() => handleQualityChange('low')}
+                    className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      gifQuality === 'low' 
+                        ? 'bg-indigo-600 text-white shadow-md' 
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Low
+                  </button>
+                  <button 
+                    onClick={() => handleQualityChange('medium')}
+                    className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      gifQuality === 'medium' 
+                        ? 'bg-indigo-600 text-white shadow-md' 
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Medium
+                  </button>
+                  <button 
+                    onClick={() => handleQualityChange('high')}
+                    className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      gifQuality === 'high' 
+                        ? 'bg-indigo-600 text-white shadow-md' 
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    High
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-        </>
+          
+          {/* Main action buttons */}
+          <div className="flex flex-col gap-4 w-full max-w-sm mx-auto">
+            {/* Full Screen button */}
+            <button
+              onClick={toggleFullScreen}
+              className="w-full bg-white border border-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+            >
+              Full Screen Mode
+            </button>
+            
+            {/* Upload or Download button */}
+            {customImage ? (
+              <button
+                onClick={handleDownloadGIF}
+                className="w-full bg-indigo-600 text-white font-medium py-3 px-8 rounded-lg shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                Download GIF
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="w-full bg-white border border-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                Upload Your Logo
+              </button>
+            )}
+          </div>
+          
+          {/* Context paragraph - only for custom image */}
+          {customImage && (
+            <p className="text-gray-600 mt-6 text-center max-w-md mx-auto">
+              Your logo is bouncing! When you're ready, download it as a GIF to use anywhere.
+            </p>
+          )}
+        </div>
       )}
 
-      {/* Format selection modal */}
+      {/* Format selection modal with improved styles */}
       {showFormatModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div 
-            className="bg-white rounded-lg shadow-xl border border-gray-200 p-8"
-            style={{ 
-              position: 'fixed', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)', 
-              zIndex: 1000,
-              width: '450px',
-              maxWidth: '90%',
-              boxSizing: 'border-box'
-            }}
-          >
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Select Format</h2>
             <div className="grid grid-cols-3 gap-4 mb-6">
               <button 
                 onClick={() => handleFormatSelect('9:16')}
-                className="bg-gray-100 hover:bg-gray-200 py-12 rounded-lg flex flex-col items-center justify-center transition-colors"
+                className="bg-gray-50 hover:bg-gray-100 py-12 rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md"
               >
-                <div className="w-12 h-24 bg-gray-300 rounded mb-2"></div>
-                <span className="font-medium">9:16</span>
+                <div className="w-12 h-24 bg-indigo-200 rounded-lg mb-2"></div>
+                <span className="font-medium text-gray-700">9:16</span>
+                <span className="text-xs text-gray-500 mt-1">Mobile</span>
               </button>
               <button 
                 onClick={() => handleFormatSelect('1:1')}
-                className="bg-gray-100 hover:bg-gray-200 py-12 rounded-lg flex flex-col items-center justify-center transition-colors"
+                className="bg-gray-50 hover:bg-gray-100 py-12 rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md"
               >
-                <div className="w-16 h-16 bg-gray-300 rounded mb-2"></div>
-                <span className="font-medium">1:1</span>
+                <div className="w-16 h-16 bg-indigo-200 rounded-lg mb-2"></div>
+                <span className="font-medium text-gray-700">1:1</span>
+                <span className="text-xs text-gray-500 mt-1">Square</span>
               </button>
               <button 
                 onClick={() => handleFormatSelect('16:9')}
-                className="bg-gray-100 hover:bg-gray-200 py-12 rounded-lg flex flex-col items-center justify-center transition-colors"
+                className="bg-gray-50 hover:bg-gray-100 py-12 rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md"
               >
-                <div className="w-24 h-12 bg-gray-300 rounded mb-2"></div>
-                <span className="font-medium">16:9</span>
+                <div className="w-24 h-12 bg-indigo-200 rounded-lg mb-2"></div>
+                <span className="font-medium text-gray-700">16:9</span>
+                <span className="text-xs text-gray-500 mt-1">Widescreen</span>
               </button>
             </div>
+            <button 
+              onClick={() => setShowFormatModal(false)}
+              className="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
       
-      {/* Upload modal */}
+      {/* Upload modal with improved styles */}
       {showUploadModal && (
-        <div style={{ position: 'relative' }}>
-          {/* Semi-transparent overlay */}
-          <div 
-            style={{ 
-              position: 'fixed', 
-              top: 0, 
-              left: 0, 
-              width: '100%', 
-              height: '100%', 
-              background: 'rgba(0,0,0,0.5)', 
-              zIndex: 998 
-            }}
-          />
-          
-          {/* Modal container */}
-          <div 
-            className="border border-black"
-            style={{ 
-              position: 'fixed', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)', 
-              zIndex: 999,
-              width: '400px',
-              maxWidth: '80%',
-              padding: '20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-              boxSizing: 'border-box'
-            }}
-          >
-            <h2 className="mb-6 text-3xl font-bold text-center">Upload Your Logo</h2>
-            <div className="flex flex-col items-center">
-              <button 
-                className="mb-4 border-2 border-black rounded-none px-12 py-2 bg-gray-100 hover:bg-gray-200 font-medium"
-              >
-                <label 
-                  htmlFor="file-upload" 
-                  className="cursor-pointer"
-                >
-                  Choose File
-                </label>
-              </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
+            <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Upload Your Logo</h2>
+            <div className="mb-8 p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
               <input 
                 id="file-upload"
                 type="file" 
@@ -899,100 +917,91 @@ const DVDContainer: React.FC = () => {
                 className="hidden" 
                 onChange={handleImageUpload}
               />
-              <p className="text-lg text-center mb-8">Recommended file size: 800×800 pixels</p>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="border-2 border-black rounded-none px-8 py-1 bg-gray-100 hover:bg-gray-200"
+              <label 
+                htmlFor="file-upload" 
+                className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200 cursor-pointer mb-4"
               >
-                Cancel
-              </button>
+                Choose Image
+              </label>
+              <p className="text-gray-500 mt-3">
+                Recommended: Square image, 800×800 pixels
+              </p>
             </div>
+            <button
+              onClick={() => setShowUploadModal(false)}
+              className="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
       
-      {/* Download modal */}
+      {/* Download modal with improved styles */}
       {showDownloadModal && (
-        <div style={{ position: 'relative' }}>
-          {/* Semi-transparent overlay */}
-          <div 
-            style={{ 
-              position: 'fixed', 
-              top: 0, 
-              left: 0, 
-              width: '100%', 
-              height: '100%', 
-              background: 'rgba(0,0,0,0.5)', 
-              zIndex: 998 
-            }}
-          />
-          
-          {/* Modal container */}
-          <div 
-            className="text-center border border-gray-300"
-            style={{ 
-              position: 'fixed', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)', 
-              zIndex: 999,
-              width: '400px',
-              maxWidth: '80%',
-              padding: '20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-              boxSizing: 'border-box'
-            }}
-          >
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Creating Your GIF</h2>
-            <p className="text-gray-600 mb-6">
-              {encodingProgress < 50 
-                ? "We're capturing frames of your bouncing logo..." 
-                : encodingProgress < 90
-                  ? "Processing animation frames..."
-                  : encodingProgress < 100
-                    ? "Encoding your GIF - almost done!"
-                    : "Downloading your GIF..."}
-            </p>
-            <p className="text-gray-800 font-medium mb-4 text-lg">
-              {encodingProgress < 100 
-                ? `Progress: ${encodingProgress}%`
-                : 'Your GIF will download automatically when ready.'}
-            </p>
-            {encodingProgress === 100 && (
-              <p className="text-sm text-gray-600 mb-4">
-                Your GIF will automatically loop when viewed in browsers and presentations.
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 max-w-md mx-auto transform transition-all duration-300">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800 text-center">Creating Your GIF</h2>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 mb-2 text-center">
+                {encodingProgress < 50 
+                  ? "Capturing animation frames..." 
+                  : encodingProgress < 90
+                    ? "Processing frames..."
+                    : encodingProgress < 100
+                      ? "Encoding your GIF..."
+                      : "Download complete!"}
               </p>
-            )}
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-8 overflow-hidden">
+              <p className="text-indigo-600 font-medium text-center text-lg mb-4">
+                {encodingProgress < 100 
+                  ? `${encodingProgress}% complete`
+                  : 'Your GIF has been downloaded!'}
+              </p>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-6 overflow-hidden">
               <div 
-                className="bg-blue-500 h-4 rounded-full transition-all duration-300"
+                className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${encodingProgress}%` }}
               ></div>
             </div>
-            <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-6"></div>
+            
+            {/* Loading spinner */}
+            {encodingProgress < 100 && (
+              <div className="flex justify-center mb-6">
+                <div className="animate-spin w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+              </div>
+            )}
             
             {/* Pro tip message */}
-            <div className="mt-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-sm text-blue-800 italic">
-                <span className="font-bold">Pro tip:</span> Drag the .gif file into your Google Slide deck as the title slide to have up while you're waiting to get started.
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <span className="font-bold">Pro tip:</span> Drag the .gif file into presentations, chat apps, or your website to add engaging animation.
               </p>
             </div>
             
-            {/* Cancel button */}
+            {/* Cancel/Done button */}
             <button
               onClick={() => {
-                if (animationFrameRef.current) {
-                  cancelAnimationFrame(animationFrameRef.current);
+                if (encodingProgress < 100) {
+                  // Cancel operation
+                  if (animationFrameRef.current) {
+                    cancelAnimationFrame(animationFrameRef.current);
+                  }
+                  gifGenerationRef.current.isGenerating = false;
                 }
-                gifGenerationRef.current.isGenerating = false;
                 setIsGenerating(false);
                 setShowDownloadModal(false);
               }}
-              className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+              className={`w-full py-2 px-4 rounded-lg transition-colors duration-200 ${
+                encodingProgress < 100
+                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
             >
-              Cancel
+              {encodingProgress < 100 ? 'Cancel' : 'Done'}
             </button>
           </div>
         </div>
@@ -1004,6 +1013,14 @@ const DVDContainer: React.FC = () => {
         className="hidden"
         style={{ display: 'none' }}
       />
+      
+      {/* Footer - not shown in fullscreen mode */}
+      {!isFullScreen && (
+        <footer className="mt-12 text-center text-gray-500 text-sm">
+          <p>Create endless DVD logo animations for presentations, websites, or just for fun.</p>
+          <p className="mt-1">Made with 💙 for nostalgic screen savers.</p>
+        </footer>
+      )}
     </div>
   );
 };

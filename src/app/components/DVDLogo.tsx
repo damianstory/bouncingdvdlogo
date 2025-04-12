@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, forwardRef } from 'react';
 
 interface DVDLogoProps {
   customImage: string | null;
@@ -12,15 +12,18 @@ interface DVDLogoProps {
 const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({ customImage, containerWidth, containerHeight }, ref) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [direction, setDirection] = useState({ x: 1, y: 1 });
-  const [color, setColor] = useState<string>('linear-gradient(to right, #4ade80, #3b82f6)');
+  const [color, setColor] = useState<string>('linear-gradient(135deg, #4361ee, #3a0ca3)');
   
   const logoSize = 72; // 72x72 pixels
   const speed = 3; // Speed of movement
 
+  // Modern gradients that look good together
   const colors = [
-    'linear-gradient(to right, #ec4899, #eab308)', // pink to yellow
-    'linear-gradient(to right, #4ade80, #3b82f6)', // green to blue
-    'linear-gradient(to right, #c084fc, #ec4899)', // purple to pink
+    'linear-gradient(135deg, #4361ee, #3a0ca3)', // blue to deep blue
+    'linear-gradient(135deg, #3a0ca3, #7209b7)', // deep blue to purple
+    'linear-gradient(135deg, #7209b7, #f72585)', // purple to pink
+    'linear-gradient(135deg, #f72585, #4cc9f0)', // pink to light blue
+    'linear-gradient(135deg, #4cc9f0, #4361ee)', // light blue to blue
   ];
 
   // Set initial position
@@ -87,12 +90,13 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({ customImage, contain
   return (
     <div
       ref={ref}
-      className="w-[72px] h-[72px] absolute rounded-full shadow-md"
+      className="w-[72px] h-[72px] absolute rounded-lg shadow-lg transition-transform duration-300 ease-out"
       style={{
         transform: `translate(${position.x}px, ${position.y}px)`,
         backgroundImage: customImage ? `url(${customImage})` : color,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
+        transition: 'background-image 0.3s ease-in-out', // Smooth color transition
       }}
     />
   );
