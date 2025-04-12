@@ -4,6 +4,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import DVDLogo from './DVDLogo';
 import GIF from 'gif.js';
 
+// Define TypeScript interfaces
+interface AnimationState {
+  position: { x: number, y: number };
+  direction: { x: number, y: number };
+  color: { start: string, end: string };
+  size: number;
+}
+
+interface GifGenerationState {
+  isGenerating: boolean;
+  frames: ImageData[];
+  frameCount: number;
+  gif: any | null;
+  startTime: number;
+  duration: number;
+  initialPosition?: { x: number, y: number };
+  initialDirection?: { x: number, y: number };
+  initialColor?: { start: string, end: string };
+  quality: 'high' | 'medium' | 'low';
+}
+
 type AspectRatio = '9:16' | '1:1' | '16:9';
 
 const getContainerDimensions = (format: AspectRatio) => {
@@ -19,6 +40,50 @@ const getContainerDimensions = (format: AspectRatio) => {
   }
 };
 
+// Helper function to batch process frames to prevent memory issues
+const processBatchedFrames = (
+  gif: any, 
+  frames: ImageData[], 
+  canvas: HTMLCanvasElement, 
+  delay: number, 
+  batchSize = 5,
+  onProgress: (progress: number) => void
+) => {
+  return new Promise<void>((resolve, reject) => {
+    const totalFrames = frames.length;
+    let processedFrames = 0;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error("Could not get canvas context"));
+      return;
+    }
+    
+    // Process frames in batches to avoid memory issues
+    const processBatch = (startIndex: number) => {
+      const endIndex = Math.min(startIndex + batchSize, totalFrames);
+      
+      for (let i = startIndex; i < endIndex; i++) {
+        ctx.putImageData(frames[i], 0, 0);
+        gif.addFrame(canvas, { copy: true, delay });
+        processedFrames++;
+        onProgress(Math.min(90, Math.floor((processedFrames / totalFrames) * 90)));
+      }
+      
+      // Allow DOM to update and GC to run
+      setTimeout(() => {
+        if (endIndex < totalFrames) {
+          processBatch(endIndex);
+        } else {
+          resolve();
+        }
+      }, 0);
+    };
+    
+    processBatch(0);
+  });
+};
+
 const DVDContainer: React.FC = () => {
   const [showFormatModal, setShowFormatModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -27,27 +92,76 @@ const DVDContainer: React.FC = () => {
   const [loadingStep, setLoadingStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<AspectRatio>('16:9');
+  const [gifQuality, setGifQuality] = useState<'high' | 'medium' | 'low'>('high');
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLDivElement | null>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 800, height: 450 });
   const animationFrameRef = useRef<number>();
   const [encodingProgress, setEncodingProgress] = useState(0);
+  const [debugMode, setDebugMode] = useState(false);
+  
+  // Animation state for GIF recording
+  const animationStateRef = useRef<AnimationState>({
+    position: { x: 0, y: 0 },
+    direction: { x: 1, y: 1 },
+    color: { start: '#ff0000', end: '#00ff00' },
+    size: 72
+  });
+  
+  // GIF generation state
+  const gifGenerationRef = useRef<GifGenerationState>({
+    isGenerating: false,
+    frames: [],
+    frameCount: 0,
+    gif: null,
+    startTime: 0,
+    duration: 30000, // 30 seconds minimum
+    quality: 'medium'
+  });
+  
+  // Custom image reference
+  const customImageRef = useRef<HTMLImageElement | null>(null);
 
   // Setup a ref for the logo element
   const setLogoRefCallback = (node: HTMLDivElement | null) => {
     logoRef.current = node;
+    
+    // If the node exists, update the animation state with its initial position
+    if (node) {
+      const rect = node.getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      
+      // Calculate position relative to container
+      animationStateRef.current.position = {
+        x: rect.left - containerRect.left,
+        y: rect.top - containerRect.top
+      };
+      
+      // Set size based on node dimensions
+      animationStateRef.current.size = rect.width;
+    }
   };
 
   useEffect(() => {
     const updateContainerDimensions = () => {
       if (containerRef.current) {
-        const newDimensions = {
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight
-        };
-        console.log("Updated container dimensions:", newDimensions);
-        setContainerDimensions(newDimensions);
+        if (isFullScreen) {
+          // In full screen mode, use window dimensions
+          setContainerDimensions({
+            width: window.innerWidth,
+            height: window.innerHeight
+          });
+        } else {
+          // In normal mode, use format dimensions
+          const newDimensions = {
+            width: containerRef.current.clientWidth,
+            height: containerRef.current.clientHeight
+          };
+          console.log("Updated container dimensions:", newDimensions);
+          setContainerDimensions(newDimensions);
+        }
       }
     };
 
@@ -57,17 +171,31 @@ const DVDContainer: React.FC = () => {
     return () => {
       window.removeEventListener('resize', updateContainerDimensions);
     };
-  }, [selectedFormat]);
+  }, [selectedFormat, isFullScreen]);
 
   useEffect(() => {
-    const dimensions = getContainerDimensions(selectedFormat);
-    const newDimensions = {
-      width: parseInt(dimensions.width),
-      height: parseInt(dimensions.height)
-    };
-    console.log("Setting dimensions from format:", selectedFormat, newDimensions);
-    setContainerDimensions(newDimensions);
-  }, [selectedFormat]);
+    if (!isFullScreen) {
+      const dimensions = getContainerDimensions(selectedFormat);
+      const newDimensions = {
+        width: parseInt(dimensions.width),
+        height: parseInt(dimensions.height)
+      };
+      console.log("Setting dimensions from format:", selectedFormat, newDimensions);
+      setContainerDimensions(newDimensions);
+    }
+  }, [selectedFormat, isFullScreen]);
+  
+  // Preload custom image if it exists
+  useEffect(() => {
+    if (customImage) {
+      const img = new Image();
+      img.src = customImage;
+      img.onload = () => {
+        customImageRef.current = img;
+        setLoadingStep(10);
+      };
+    }
+  }, [customImage]);
 
   const loadingColors = [
     'bg-red-500',
@@ -87,6 +215,11 @@ const DVDContainer: React.FC = () => {
     setShowFormatModal(false);
   };
 
+  const handleQualityChange = (quality: 'high' | 'medium' | 'low') => {
+    setGifQuality(quality);
+    gifGenerationRef.current.quality = quality;
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -94,24 +227,115 @@ const DVDContainer: React.FC = () => {
       reader.onloadend = () => {
         setCustomImage(reader.result as string);
         setShowUploadModal(false);
+        
+        // Preload the image for recording
+        const img = new Image();
+        img.src = reader.result as string;
+        img.onload = () => {
+          customImageRef.current = img;
+        };
       };
       reader.readAsDataURL(file);
     }
   };
 
-  useEffect(() => {
-    if (customImage) {
-      setLoadingStep(10);
+  // Function to update animation state (position, direction, and color)
+  const updateAnimationState = (timestamp: number) => {
+    const { position, direction, size } = animationStateRef.current;
+    const canvasWidth = canvasRef.current?.width || containerDimensions.width;
+    const canvasHeight = canvasRef.current?.height || containerDimensions.height;
+    
+    // Update position based on direction
+    position.x += direction.x * 3; // Speed = 3px per frame
+    position.y += direction.y * 3;
+    
+    // Handle boundary collisions
+    if (position.x <= 0 || position.x + size >= canvasWidth) {
+      direction.x *= -1;
+      position.x = Math.max(0, Math.min(position.x, canvasWidth - size));
+      
+      // Update color on collision
+      updateColorOnCollision(timestamp);
     }
-  }, [customImage]);
+    
+    if (position.y <= 0 || position.y + size >= canvasHeight) {
+      direction.y *= -1;
+      position.y = Math.max(0, Math.min(position.y, canvasHeight - size));
+      
+      // Update color on collision
+      updateColorOnCollision(timestamp);
+    }
+  };
+  
+  // Function to update color on collision
+  const updateColorOnCollision = (timestamp: number) => {
+    // Calculate dynamic hue based on timestamp
+    const hue1 = (timestamp / 50) % 360;
+    const hue2 = (hue1 + 60) % 360;
+    
+    animationStateRef.current.color = {
+      start: `hsl(${hue1}, 80%, 60%)`,
+      end: `hsl(${hue2}, 80%, 60%)`
+    };
+  };
+  
+  // Function to draw logo on canvas
+  const drawLogoOnCanvas = (ctx: CanvasRenderingContext2D) => {
+    const { position, color, size } = animationStateRef.current;
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    
+    // Draw the logo
+    if (customImage && customImageRef.current) {
+      // Draw custom image
+      ctx.drawImage(customImageRef.current, position.x, position.y, size, size);
+    } else {
+      // Draw default DVD logo (gradient circle)
+      ctx.beginPath();
+      ctx.arc(position.x + size/2, position.y + size/2, size/2, 0, Math.PI * 2);
+      
+      // Create gradient
+      const gradient = ctx.createLinearGradient(
+        position.x, 
+        position.y, 
+        position.x + size, 
+        position.y + size
+      );
+      gradient.addColorStop(0, color.start);
+      gradient.addColorStop(1, color.end);
+      
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+  };
+  
+  // Function to stop GIF generation
+  const stopGifGeneration = () => {
+    gifGenerationRef.current.isGenerating = false;
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+  };
 
-  const startRecording = async () => {
+  // Setup GIF.js with appropriate quality settings
+  // Quality settings map to worker count and sample interval
+  const qualitySettings = {
+    high: { quality: 1, workers: 4, delay: 40, fps: 25 },    // 25fps, highest quality
+    medium: { quality: 10, workers: 2, delay: 66, fps: 15 },  // 15fps, medium quality
+    low: { quality: 20, workers: 2, delay: 100, fps: 10 }    // 10fps, low quality
+  };
+
+  // Start GIF generation function
+  const startGifGeneration = async () => {
     if (!containerRef.current || !canvasRef.current) {
       console.error("Container or canvas ref is null");
       return;
     }
 
-    console.log("Starting GIF recording process");
+    console.log("Starting GIF generation process");
     
     // Set recording state
     setIsGenerating(true);
@@ -119,187 +343,324 @@ const DVDContainer: React.FC = () => {
     setEncodingProgress(0);
     
     try {
+      // Get container dimensions
+      const container = containerRef.current;
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) {
-        console.error("Could not get canvas context");
-        setIsGenerating(false);
-        setShowDownloadModal(false);
-        return;
-      }
-
-      // Set canvas dimensions to match container
-      canvas.width = containerDimensions.width;
-      canvas.height = containerDimensions.height;
+      
+      // Set canvas dimensions to exactly match container dimensions
+      const containerRect = container.getBoundingClientRect();
+      canvas.width = containerRect.width;
+      canvas.height = containerRect.height;
       console.log("Canvas dimensions set to:", canvas.width, "x", canvas.height);
       
-      // Initialize gif.js with proper configuration
-      console.log("Initializing GIF.js");
+      // If in debug mode, show the canvas
+      if (debugMode) {
+        canvas.style.display = 'block';
+        canvas.style.position = 'fixed';
+        canvas.style.top = '10px';
+        canvas.style.left = '10px';
+        canvas.style.border = '2px solid red';
+        canvas.style.zIndex = '9999';
+      } else {
+        canvas.style.display = 'none';
+      }
       
-      // Create a new GIF instance with better settings
+      // Create a canvas context for drawing
+      const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+      if (!ctx) {
+        throw new Error("Could not get canvas context");
+      }
+      
+      // Initialize animation state
+      if (logoRef.current) {
+        // Get the current position of the actual logo
+        const logoRect = logoRef.current.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Calculate position within container bounds
+        const initialX = logoRect.left - containerRect.left;
+        const initialY = logoRect.top - containerRect.top;
+        
+        // Set initial state based on actual logo position
+        animationStateRef.current = {
+          position: {
+            x: initialX,
+            y: initialY
+          },
+          direction: { x: 1, y: 1 },
+          color: { start: '#4ade80', end: '#3b82f6' }, // Initial green to blue gradient
+          size: logoRect.width
+        };
+        
+        // Store initial state for loop creation
+        gifGenerationRef.current.initialPosition = { x: initialX, y: initialY };
+        gifGenerationRef.current.initialDirection = { x: 1, y: 1 };
+        gifGenerationRef.current.initialColor = { start: '#4ade80', end: '#3b82f6' };
+      }
+      
+      const settings = qualitySettings[gifGenerationRef.current.quality];
+      
+      // Create GIF instance with optimized settings
       const gif = new GIF({
-        workers: 2,
-        quality: 10,  // Higher quality (lower number = better quality)
+        workers: settings.workers,
+        quality: settings.quality,
         width: canvas.width,
         height: canvas.height,
-        workerScript: '/gif.worker.js',
-        repeat: 0,    // 0 = loop forever
+        workerScript: window.location.origin + '/gif.worker.js',
+        repeat: 0,  // 0 means loop forever
         background: '#ffffff',
         dither: false
       });
-
-      // Setup progress handler immediately
+      
+      // Handle progress events
       gif.on('progress', (progress: number) => {
-        console.log(`GIF encoding progress: ${Math.floor(progress * 100)}%`);
-        setEncodingProgress(Math.floor(progress * 100));
+        // Progress from GIF.js is 0-1, and starts after frame capture
+        // We map this to 90-100% since frame capture is 0-90%
+        const gifProgress = 90 + (progress * 10);
+        setEncodingProgress(Math.floor(gifProgress));
+        console.log(`GIF encoding progress: ${Math.floor(gifProgress)}%`);
       });
       
-      // Handle completion
+      // Configure GIF generation state
+      gifGenerationRef.current = {
+        ...gifGenerationRef.current,
+        isGenerating: true,
+        frames: [],
+        frameCount: 0,
+        gif,
+        startTime: Date.now(),
+        duration: 30000,  // 30 seconds minimum
+        quality: gifQuality
+      };
+      
+      // Add a warm-up period before starting to capture frames
+      console.log("Starting animation warm-up period...");
+      setEncodingProgress(5);
+      
+      // Run animation for a few seconds before capturing frames to stabilize it
+      const warmupDuration = 4000; // 4 second warm-up
+      const warmUpAnimation = (timestamp: number) => {
+        if (!gifGenerationRef.current.isGenerating) return;
+        
+        // Calculate elapsed warm-up time
+        const elapsed = Date.now() - gifGenerationRef.current.startTime;
+        
+        // Update animation state and draw (but don't capture)
+        updateAnimationState(timestamp);
+        if (ctx) {
+          drawLogoOnCanvas(ctx);
+        }
+        
+        // Continue warm-up or start capturing
+        if (elapsed < warmupDuration) {
+          // Update warm-up progress (0-5%)
+          const warmupProgress = Math.min(5, Math.floor((elapsed / warmupDuration) * 5));
+          setEncodingProgress(warmupProgress);
+          
+          // Continue warm-up
+          animationFrameRef.current = requestAnimationFrame(warmUpAnimation);
+        } else {
+          console.log("Warm-up complete, starting frame capture");
+          // Reset start time for actual capture
+          gifGenerationRef.current.startTime = Date.now();
+          // Start actual frame capture
+          animationFrameRef.current = requestAnimationFrame(captureFrame);
+        }
+      };
+      
+      // Define animation function for capturing frames
+      const captureFrame = (timestamp: number) => {
+        if (!gifGenerationRef.current.isGenerating) return;
+        
+        // Calculate elapsed time
+        const elapsed = Date.now() - gifGenerationRef.current.startTime;
+        const duration = gifGenerationRef.current.duration;
+        
+        try {
+          // If approaching the end of the duration, start returning to initial position
+          // This creates a seamless loop by returning to the starting point
+          if (elapsed >= duration - 2000) { // Last 2 seconds
+            const timeRemaining = duration - elapsed;
+            const initialPos = gifGenerationRef.current.initialPosition;
+            
+            if (initialPos && ctx) {
+              // Calculate how much to move each frame to get back to start
+              const currentPos = animationStateRef.current.position;
+              const distanceX = initialPos.x - currentPos.x;
+              const distanceY = initialPos.y - currentPos.y;
+              
+              // Gradually adjust position to match initial position
+              const framesRemaining = timeRemaining / (1000 / settings.fps);
+              
+              if (framesRemaining > 0) {
+                const stepX = distanceX / framesRemaining;
+                const stepY = distanceY / framesRemaining;
+                
+                // Update position directly for smooth return
+                animationStateRef.current.position.x += stepX;
+                animationStateRef.current.position.y += stepY;
+                
+                // Gradually restore initial color and direction
+                if (gifGenerationRef.current.initialColor && gifGenerationRef.current.initialDirection) {
+                  // Smooth blend to original color
+                  const initialColor = gifGenerationRef.current.initialColor;
+                  animationStateRef.current.color.start = initialColor.start;
+                  animationStateRef.current.color.end = initialColor.end;
+                  
+                  // Gradually restore initial direction
+                  animationStateRef.current.direction = gifGenerationRef.current.initialDirection;
+                }
+                
+                // Draw with adjusted position
+                drawLogoOnCanvas(ctx);
+              }
+            }
+          } else {
+            // Normal animation
+            // Update animation state (position, direction, color)
+            updateAnimationState(timestamp);
+            
+            // Draw logo on canvas
+            if (ctx) {
+              drawLogoOnCanvas(ctx);
+            }
+          }
+          
+          // Capture the frame at intervals based on quality setting
+          if (elapsed % settings.delay < 20) { // Only capture every X ms based on desired FPS
+            // Get the image data from the canvas
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            gifGenerationRef.current.frames.push(imageData);
+            gifGenerationRef.current.frameCount++;
+            
+            // Update capture progress (5-90%)
+            const captureProgress = 5 + Math.min(85, Math.floor((elapsed / duration) * 85));
+            setEncodingProgress(captureProgress);
+          }
+          
+          // If we've reached the duration, finish frame capture and start GIF creation
+          if (elapsed >= duration) {
+            console.log(`Reached capture duration limit of ${duration / 1000}s with ${gifGenerationRef.current.frameCount} frames`);
+            finishGifGeneration();
+            return;
+          }
+          
+          // Request next frame
+          animationFrameRef.current = requestAnimationFrame(captureFrame);
+        } catch (error) {
+          console.error("Frame capture error:", error);
+          stopGifGeneration();
+          setIsGenerating(false);
+          setShowDownloadModal(false);
+        }
+      };
+      
+      // Start with warm-up period
+      animationFrameRef.current = requestAnimationFrame(warmUpAnimation);
+      
+    } catch (error) {
+      console.error("GIF setup error:", error);
+      setIsGenerating(false);
+      setShowDownloadModal(false);
+      alert("Failed to set up GIF generation. Please try again or use a different browser.");
+    }
+  };
+  
+  // Function to finalize GIF generation and handle download
+  const finishGifGeneration = async () => {
+    console.log("Finishing GIF generation and starting encoding");
+    
+    try {
+      const { frames, gif } = gifGenerationRef.current;
+      
+      if (frames.length === 0 || !gif || !canvasRef.current) {
+        throw new Error("No frames captured or GIF not initialized");
+      }
+      
+      // Set encoding progress
+      setEncodingProgress(90);
+      
+      // Get quality settings
+      const qualitySettings = {
+        high: { delay: 66 },    // 15fps
+        medium: { delay: 66 },  // 15fps
+        low: { delay: 100 }     // 10fps
+      };
+      
+      const settings = qualitySettings[gifGenerationRef.current.quality];
+      
+      // Process frames in batches to prevent memory issues
+      await processBatchedFrames(
+        gif, 
+        frames, 
+        canvasRef.current, 
+        settings.delay, 
+        5, 
+        (progress) => setEncodingProgress(progress)
+      );
+      
+      // Add finished handler
       gif.on('finished', (blob: Blob) => {
         console.log(`GIF generation completed, size: ${blob.size} bytes`);
+        console.log('Blob MIME type:', blob.type);
         setEncodingProgress(100);
         
         try {
-          // Create a download link
+          // Create URL for the GIF blob
           const url = URL.createObjectURL(blob);
+          
+          // Create a preview element
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.position = 'fixed';
+          img.style.bottom = '10px';
+          img.style.right = '10px';
+          img.style.width = '300px'; // Bigger preview
+          img.style.zIndex = '9999';
+          img.style.border = '2px solid black';
+          document.body.appendChild(img);
+          
+          console.log("Preview GIF added to page");
+          
+          // Create download link
           const a = document.createElement('a');
           a.href = url;
           a.download = `bouncing-logo-${selectedFormat}-${Date.now()}.gif`;
+          a.style.display = 'none';
           document.body.appendChild(a);
           a.click();
           
+          // Cleanup
           setTimeout(() => {
             document.body.removeChild(a);
+            setTimeout(() => {
+              document.body.removeChild(img);
+            }, 10000); // 10 seconds
             URL.revokeObjectURL(url);
+            
+            // Reset state
+            gifGenerationRef.current.frames = [];
+            gifGenerationRef.current.isGenerating = false;
             setIsGenerating(false);
             setShowDownloadModal(false);
           }, 1000);
         } catch (error) {
-          console.error('Download error:', error);
+          console.error("Download error:", error);
           setIsGenerating(false);
           setShowDownloadModal(false);
         }
       });
-
-      // Modified frame capture approach - direct rendering
-      // Instead of trying to detect position changes, we'll render frames directly
-      
-      // Pre-load the custom image if any
-      let logoImg: HTMLImageElement | null = null;
-      if (customImage) {
-        logoImg = new Image();
-        logoImg.src = customImage;
-        // Wait for the image to load before proceeding
-        await new Promise<void>((resolve, reject) => {
-          logoImg!.onload = () => resolve();
-          logoImg!.onerror = reject;
-        }).catch(err => {
-          console.error("Failed to load custom image:", err);
-          setIsGenerating(false);
-          setShowDownloadModal(false);
-          return;
-        });
-      }
-      
-      // Capture frames
-      console.log("Starting frame capture");
-      
-      // Parameters for animation
-      const framesCount = 30;  // Capture 30 frames for a ~3 second animation at 10fps
-      const frameDelay = 100;  // 100ms between frames (10fps)
-      const logoSize = 72;     // Logo size in pixels
-      
-      // Get the initial position and direction for animation
-      let positions: Array<{x: number, y: number}> = [];
-      let directions = { x: 1, y: 1 };
-      
-      // Simple animation function to calculate positions
-      const calculatePositions = () => {
-        let x = Math.random() * (canvas.width - logoSize);
-        let y = Math.random() * (canvas.height - logoSize);
-        
-        // Calculate all positions upfront
-        for (let i = 0; i < framesCount; i++) {
-          // Update position based on direction
-          x += directions.x * 3;  // Speed = 3px per frame
-          y += directions.y * 3;
-          
-          // Check for collisions with walls
-          if (x <= 0 || x >= canvas.width - logoSize) {
-            directions.x *= -1;
-            x = Math.max(0, Math.min(x, canvas.width - logoSize));
-          }
-          
-          if (y <= 0 || y >= canvas.height - logoSize) {
-            directions.y *= -1;
-            y = Math.max(0, Math.min(y, canvas.height - logoSize));
-          }
-          
-          // Store position
-          positions.push({ x, y });
-        }
-      };
-      
-      // Pre-calculate all positions
-      calculatePositions();
-      
-      // Draw frames one by one
-      for (let i = 0; i < framesCount; i++) {
-        // Clear canvas
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Get pre-calculated position
-        const pos = positions[i];
-        
-        // Draw logo
-        if (customImage && logoImg) {
-          // Draw uploaded logo image
-          ctx.drawImage(logoImg, pos.x, pos.y, logoSize, logoSize);
-        } else {
-          // Draw default logo (circle with gradient)
-          ctx.beginPath();
-          ctx.arc(pos.x + (logoSize/2), pos.y + (logoSize/2), logoSize/2, 0, Math.PI * 2);
-          
-          // Create gradient - alternate colors
-          let gradientColors;
-          if (i % 3 === 0) {
-            gradientColors = ['#4ade80', '#3b82f6']; // green to blue
-          } else if (i % 3 === 1) {
-            gradientColors = ['#ec4899', '#eab308']; // pink to yellow
-          } else {
-            gradientColors = ['#c084fc', '#ec4899']; // purple to pink
-          }
-          
-          const gradient = ctx.createLinearGradient(pos.x, pos.y, pos.x + logoSize, pos.y + logoSize);
-          gradient.addColorStop(0, gradientColors[0]);
-          gradient.addColorStop(1, gradientColors[1]);
-          
-          ctx.fillStyle = gradient;
-          ctx.fill();
-        }
-        
-        // Update progress for frame capturing phase
-        setEncodingProgress(Math.floor((i / framesCount) * 50));
-        
-        // Add the frame to the GIF
-        gif.addFrame(canvas, { delay: frameDelay, copy: true });
-        
-        // Small delay between frame generation to prevent UI freezing
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
       
       // Start rendering the GIF
-      console.log("All frames captured, rendering GIF now");
-      setEncodingProgress(50); // Frame capture complete, now rendering
-      
-      // Render the GIF (this triggers the 'progress' and 'finished' events)
+      console.log(`Starting GIF render with ${frames.length} frames`);
       gif.render();
       
     } catch (error) {
-      console.error("Error during GIF generation:", error);
+      console.error("GIF finalization error:", error);
+      stopGifGeneration();
       setIsGenerating(false);
       setShowDownloadModal(false);
+      alert("Failed to generate the GIF. Please try again with a smaller size or lower quality.");
     }
   };
 
@@ -309,25 +670,50 @@ const DVDContainer: React.FC = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      // Ensure GIF generation stops if component unmounts
+      gifGenerationRef.current.isGenerating = false;
     };
   }, []);
 
-  const handleDownloadVideo = () => {
+  const handleDownloadGIF = () => {
     setShowDownloadModal(true);
-    startRecording();
+    startGifGeneration();
+  };
+
+  const toggleDebugMode = () => {
+    setDebugMode(!debugMode);
+  };
+
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+    
+    // When exiting full screen, reset to the selected format dimensions
+    if (isFullScreen) {
+      const dimensions = getContainerDimensions(selectedFormat);
+      setContainerDimensions({
+        width: parseInt(dimensions.width),
+        height: parseInt(dimensions.height)
+      });
+    } else {
+      // When entering full screen, update dimensions to window size
+      setContainerDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    }
   };
 
   const dimensions = getContainerDimensions(selectedFormat);
 
   return (
-    <div className="flex flex-col items-center justify-center py-8 px-4 min-h-screen bg-gray-100">
+    <div className={`flex flex-col items-center justify-center py-8 px-4 ${isFullScreen ? 'fixed inset-0 z-50 bg-black m-0 p-0' : 'min-h-screen bg-gray-100'}`}>
       <div style={{ position: 'relative' }}>
         <div 
           ref={containerRef}
-          className="relative overflow-hidden bg-white rounded-md shadow-xl border border-gray-200 mb-6"
+          className={`relative overflow-hidden bg-white ${isFullScreen ? '' : 'rounded-md shadow-xl border border-gray-200 mb-6'}`}
           style={{ 
-            width: getContainerDimensions(selectedFormat).width, 
-            height: getContainerDimensions(selectedFormat).height 
+            width: isFullScreen ? '100vw' : getContainerDimensions(selectedFormat).width, 
+            height: isFullScreen ? '100vh' : getContainerDimensions(selectedFormat).height 
           }}
         >
           {/* Default bouncing logo or uploaded custom image */}
@@ -337,69 +723,86 @@ const DVDContainer: React.FC = () => {
             containerHeight={containerDimensions.height}
             ref={setLogoRefCallback}
           />
-          
-          {isGenerating && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
-              <svg className="animate-spin h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span className="ml-2 text-lg font-medium">Generating...</span>
-            </div>
-          )}
         </div>
       </div>
       
-      {/* Format selection text and buttons */}
-      <div className="text-center mb-4">
-        <p className="text-xl font-medium mb-4">What format would you like this in?</p>
-        <div className="flex justify-center mb-4" style={{ gap: "5px", marginBottom: '10px' }}>
-          <button 
-            onClick={() => handleFormatSelect('9:16')}
-            className={`border-2 ${selectedFormat === '9:16' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
-          >
-            9:16
-          </button>
-          <button 
-            onClick={() => handleFormatSelect('1:1')}
-            className={`border-2 ${selectedFormat === '1:1' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
-          >
-            1:1
-          </button>
-          <button 
-            onClick={() => handleFormatSelect('16:9')}
-            className={`border-2 ${selectedFormat === '16:9' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
-          >
-            16:9
-          </button>
-        </div>
-        
-        {/* Conditional button: Upload Your Logo or Download GIF */}
-        {customImage ? (
-          <>
-            <p className="text-gray-600 mb-3">
-              Watch your logo bounce! When you're ready, download it as a GIF.
-            </p>
-            <button
-              onClick={handleDownloadVideo}
-              className="border-2 border-black rounded-none py-2 px-8 bg-green-500 hover:bg-green-600 text-white font-medium mt-2"
-              style={{ marginTop: '10px' }}
-            >
-              Download GIF
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="border-2 border-black rounded-none py-2 px-8 bg-gray-100 hover:bg-gray-200 mt-4"
-            style={{ marginTop: '10px' }}
-          >
-            Upload Your Logo
-          </button>
-        )}
-      </div>
+      {/* Exit full screen button - only visible in full screen mode */}
+      {isFullScreen && (
+        <button
+          onClick={toggleFullScreen}
+          className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-black bg-opacity-70 text-white px-4 py-2 rounded hover:bg-opacity-90"
+          style={{ position: 'fixed', bottom: '20px' }}
+        >
+          Minimize
+        </button>
+      )}
+      
+      {/* Only show controls when not in full screen mode */}
+      {!isFullScreen && (
+        <>
+          {/* Format selection text and buttons */}
+          <div className="text-center mb-4">
+            <p className="text-xl font-medium mb-4">What format would you like this in?</p>
+            <div className="flex justify-center mb-4" style={{ gap: "5px", marginBottom: '10px' }}>
+              <button 
+                onClick={() => handleFormatSelect('9:16')}
+                className={`border-2 ${selectedFormat === '9:16' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
+              >
+                9:16
+              </button>
+              <button 
+                onClick={() => handleFormatSelect('1:1')}
+                className={`border-2 ${selectedFormat === '1:1' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
+              >
+                1:1
+              </button>
+              <button 
+                onClick={() => handleFormatSelect('16:9')}
+                className={`border-2 ${selectedFormat === '16:9' ? 'border-black bg-gray-200' : 'border-black'} rounded-none px-4 py-2`}
+              >
+                16:9
+              </button>
+            </div>
+            
+            {/* Buttons row with consistent vertical padding */}
+            <div className="flex flex-col items-center justify-center mx-auto my-4" style={{ width: 'calc(3 * 80px + 10px)' }}>
+              {/* Full Screen button - now first */}
+              <button
+                onClick={toggleFullScreen}
+                className="border-2 border-black rounded-none py-2 px-8 bg-gray-100 hover:bg-gray-200 w-full mb-4"
+              >
+                Full Screen
+              </button>
+              
+              {/* Conditional: Upload or Download button - now second */}
+              {customImage ? (
+                <button
+                  onClick={handleDownloadGIF}
+                  className="border-2 border-black rounded-none py-2 px-8 bg-green-500 hover:bg-green-600 text-white font-medium w-full"
+                >
+                  Download GIF
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="border-2 border-black rounded-none py-2 px-8 bg-gray-100 hover:bg-gray-200 w-full"
+                >
+                  Upload Your Logo
+                </button>
+              )}
+            </div>
+            
+            {/* Context paragraph - only for custom image */}
+            {customImage && (
+              <p className="text-gray-600 mt-2">
+                Watch your logo bounce! When you're ready, download it as a GIF.
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
-      {/* Format selection modal - now hidden by default */}
+      {/* Format selection modal */}
       {showFormatModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div 
@@ -546,13 +949,22 @@ const DVDContainer: React.FC = () => {
             <p className="text-gray-600 mb-6">
               {encodingProgress < 50 
                 ? "We're capturing frames of your bouncing logo..." 
-                : "Encoding your GIF - this might take a moment..."}
+                : encodingProgress < 90
+                  ? "Processing animation frames..."
+                  : encodingProgress < 100
+                    ? "Encoding your GIF - almost done!"
+                    : "Downloading your GIF..."}
             </p>
             <p className="text-gray-800 font-medium mb-4 text-lg">
               {encodingProgress < 100 
                 ? `Progress: ${encodingProgress}%`
                 : 'Your GIF will download automatically when ready.'}
             </p>
+            {encodingProgress === 100 && (
+              <p className="text-sm text-gray-600 mb-4">
+                Your GIF will automatically loop when viewed in browsers and presentations.
+              </p>
+            )}
             <div className="w-full bg-gray-200 rounded-full h-4 mb-8 overflow-hidden">
               <div 
                 className="bg-blue-500 h-4 rounded-full transition-all duration-300"
@@ -561,12 +973,20 @@ const DVDContainer: React.FC = () => {
             </div>
             <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-6"></div>
             
+            {/* Pro tip message */}
+            <div className="mt-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800 italic">
+                <span className="font-bold">Pro tip:</span> Drag the .gif file into your Google Slide deck as the title slide to have up while you're waiting to get started.
+              </p>
+            </div>
+            
             {/* Cancel button */}
             <button
               onClick={() => {
                 if (animationFrameRef.current) {
                   cancelAnimationFrame(animationFrameRef.current);
                 }
+                gifGenerationRef.current.isGenerating = false;
                 setIsGenerating(false);
                 setShowDownloadModal(false);
               }}
