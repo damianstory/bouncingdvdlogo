@@ -37,4 +37,4 @@ The GIF generation process is handled in the `startRecording` function in `DVDCo
 - Next.js
 - TypeScript
 - Tailwind CSS
-- GIF.js for GIF generation 
+- GIF.js for GIF generation
