@@ -29,12 +29,15 @@ const DVDContainer: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<AspectRatio>('16:9');
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const logoRef = useRef<HTMLDivElement | null>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 800, height: 450 });
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
   const animationFrameRef = useRef<number>();
-  const framesRef = useRef<HTMLCanvasElement[]>([]);
   const [encodingProgress, setEncodingProgress] = useState(0);
+
+  // Setup a ref for the logo element
+  const setLogoRefCallback = (node: HTMLDivElement | null) => {
+    logoRef.current = node;
+  };
 
   useEffect(() => {
     const updateContainerDimensions = () => {
@@ -113,37 +116,9 @@ const DVDContainer: React.FC = () => {
     // Set recording state
     setIsGenerating(true);
     setShowDownloadModal(true);
+    setEncodingProgress(0);
     
     try {
-      // Force the progress to complete after a timeout to avoid hanging
-      const forceCompleteTimeout = setTimeout(() => {
-        console.log("Force completing GIF generation after timeout");
-        setEncodingProgress(100);
-        
-        // Create a static image fallback if GIF generation is taking too long
-        try {
-          if (canvasRef.current) {
-            const staticImage = canvasRef.current.toDataURL('image/png');
-            const a = document.createElement('a');
-            a.href = staticImage;
-            a.download = `bouncing-logo-static-${Date.now()}.png`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            
-            setTimeout(() => {
-              document.body.removeChild(a);
-              setIsGenerating(false);
-              setShowDownloadModal(false);
-            }, 1000);
-          }
-        } catch (e) {
-          console.error("Failed to create fallback image:", e);
-          setIsGenerating(false);
-          setShowDownloadModal(false);
-        }
-      }, 15000); // 15 seconds timeout
-      
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) {
@@ -153,9 +128,6 @@ const DVDContainer: React.FC = () => {
         return;
       }
 
-      // Reset progress
-      setEncodingProgress(0);
-
       // Set canvas dimensions to match container
       canvas.width = containerDimensions.width;
       canvas.height = containerDimensions.height;
@@ -163,243 +135,169 @@ const DVDContainer: React.FC = () => {
       
       // Initialize gif.js with proper configuration
       console.log("Initializing GIF.js");
-      const workerScriptPath = '/gif.worker.js';
       
+      // Create a new GIF instance with better settings
       const gif = new GIF({
-        workers: 1,           // Reduce to 1 worker to avoid threading issues
-        quality: 20,          // Lower quality for better performance (higher number = lower quality)
-        width: containerDimensions.width,
-        height: containerDimensions.height,
-        workerScript: workerScriptPath,
-        repeat: 0,            // 0 = loop forever
-        background: '#ffffff'
+        workers: 2,
+        quality: 10,  // Higher quality (lower number = better quality)
+        width: canvas.width,
+        height: canvas.height,
+        workerScript: '/gif.worker.js',
+        repeat: 0,    // 0 = loop forever
+        background: '#ffffff',
+        dither: false
       });
 
-      // Frame capture settings
-      const targetFrameRate = 5; // Reduced to 5 FPS for better performance
-      const recordingDuration = 2000; // 2 seconds to capture fewer frames
-      const frames: HTMLCanvasElement[] = [];
-      const frameDelay = 200; // 200ms between frames (5fps)
+      // Setup progress handler immediately
+      gif.on('progress', (progress: number) => {
+        console.log(`GIF encoding progress: ${Math.floor(progress * 100)}%`);
+        setEncodingProgress(Math.floor(progress * 100));
+      });
       
-      console.log(`Recording with reduced settings: ${targetFrameRate} FPS, ${recordingDuration}ms duration`);
-
-      // Progress update function
-      let fakeProgress = 0;
-      const progressInterval = setInterval(() => {
-        fakeProgress += 10;
-        if (fakeProgress > 85) {
-          clearInterval(progressInterval);
-        } else {
-          setEncodingProgress(fakeProgress);
-        }
-      }, 500);
-
-      // Capture frames at fixed intervals using setTimeout instead of requestAnimationFrame
-      const captureFrames = async () => {
-        console.log("Starting frame capture sequence");
+      // Handle completion
+      gif.on('finished', (blob: Blob) => {
+        console.log(`GIF generation completed, size: ${blob.size} bytes`);
+        setEncodingProgress(100);
         
-        for (let i = 0; i < targetFrameRate * (recordingDuration / 1000); i++) {
-          await new Promise<void>(resolve => {
-            setTimeout(() => {
-              if (!containerRef.current || !canvasRef.current || !ctx) {
-                console.error("References lost during capture");
-                resolve();
-                return;
-              }
-              
-              // Clear canvas
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              
-              // Draw white background
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              
-              // Find and draw the logo
-              const logoElement = containerRef.current.querySelector('div[class*="w-[72px]"]') || 
-                        containerRef.current.querySelector('div[style*="translate"]');
-              
-              const logo = logoElement as HTMLDivElement | null;
-              
-              if (logo) {
-                console.log(`Capturing frame ${i+1}`);
-                
-                const transform = logo.style.transform;
-                const matches = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-                
-                if (matches) {
-                  const x = parseFloat(matches[1].replace('px', ''));
-                  const y = parseFloat(matches[2].replace('px', ''));
-                  
-                  if (customImage) {
-                    const img = new Image();
-                    img.src = customImage;
-                    
-                    if (img.complete) {
-                      ctx.drawImage(img, x, y, 72, 72);
-                    } else {
-                      // Use Promise-based approach without await
-                      img.onload = () => {
-                        ctx.drawImage(img, x, y, 72, 72);
-                        
-                        // Create a copy of the canvas for this frame
-                        const frameCanvas = document.createElement('canvas');
-                        frameCanvas.width = canvas.width;
-                        frameCanvas.height = canvas.height;
-                        const frameCtx = frameCanvas.getContext('2d');
-                        if (frameCtx) {
-                          frameCtx.drawImage(canvas, 0, 0);
-                          frames.push(frameCanvas);
-                          console.log(`Frame ${frames.length} captured (after image load)`);
-                        }
-                        
-                        resolve();
-                      };
-                      
-                      img.onerror = () => {
-                        console.error("Failed to load custom image");
-                        resolve();
-                      };
-                      
-                      // Return early - the onload/onerror handlers will resolve the promise
-                      return;
-                    }
-                  } else {
-                    ctx.beginPath();
-                    ctx.arc(x + 36, y + 36, 36, 0, Math.PI * 2);
-                    
-                    const gradient = ctx.createLinearGradient(x, y, x + 72, y + 72);
-                    gradient.addColorStop(0, '#4ade80');
-                    gradient.addColorStop(1, '#3b82f6');
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.fill();
-                  }
-                }
-              }
-              
-              // Create a copy of the canvas for this frame
-              const frameCanvas = document.createElement('canvas');
-              frameCanvas.width = canvas.width;
-              frameCanvas.height = canvas.height;
-              const frameCtx = frameCanvas.getContext('2d');
-              if (frameCtx) {
-                frameCtx.drawImage(canvas, 0, 0);
-                frames.push(frameCanvas);
-                console.log(`Frame ${frames.length} captured`);
-              }
-              
-              resolve();
-            }, i * frameDelay);
-          });
+        try {
+          // Create a download link
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `bouncing-logo-${selectedFormat}-${Date.now()}.gif`;
+          document.body.appendChild(a);
+          a.click();
+          
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setIsGenerating(false);
+            setShowDownloadModal(false);
+          }, 1000);
+        } catch (error) {
+          console.error('Download error:', error);
+          setIsGenerating(false);
+          setShowDownloadModal(false);
         }
-        
-        console.log(`Frame capture complete. Total frames: ${frames.length}`);
-        return frames;
-      };
+      });
+
+      // Modified frame capture approach - direct rendering
+      // Instead of trying to detect position changes, we'll render frames directly
       
-      // Execute the frame capture and create GIF
-      captureFrames().then(frames => {
-        clearInterval(progressInterval);
-        
-        if (frames.length === 0) {
-          console.error("No frames captured");
-          clearTimeout(forceCompleteTimeout);
+      // Pre-load the custom image if any
+      let logoImg: HTMLImageElement | null = null;
+      if (customImage) {
+        logoImg = new Image();
+        logoImg.src = customImage;
+        // Wait for the image to load before proceeding
+        await new Promise<void>((resolve, reject) => {
+          logoImg!.onload = () => resolve();
+          logoImg!.onerror = reject;
+        }).catch(err => {
+          console.error("Failed to load custom image:", err);
           setIsGenerating(false);
           setShowDownloadModal(false);
           return;
+        });
+      }
+      
+      // Capture frames
+      console.log("Starting frame capture");
+      
+      // Parameters for animation
+      const framesCount = 30;  // Capture 30 frames for a ~3 second animation at 10fps
+      const frameDelay = 100;  // 100ms between frames (10fps)
+      const logoSize = 72;     // Logo size in pixels
+      
+      // Get the initial position and direction for animation
+      let positions: Array<{x: number, y: number}> = [];
+      let directions = { x: 1, y: 1 };
+      
+      // Simple animation function to calculate positions
+      const calculatePositions = () => {
+        let x = Math.random() * (canvas.width - logoSize);
+        let y = Math.random() * (canvas.height - logoSize);
+        
+        // Calculate all positions upfront
+        for (let i = 0; i < framesCount; i++) {
+          // Update position based on direction
+          x += directions.x * 3;  // Speed = 3px per frame
+          y += directions.y * 3;
+          
+          // Check for collisions with walls
+          if (x <= 0 || x >= canvas.width - logoSize) {
+            directions.x *= -1;
+            x = Math.max(0, Math.min(x, canvas.width - logoSize));
+          }
+          
+          if (y <= 0 || y >= canvas.height - logoSize) {
+            directions.y *= -1;
+            y = Math.max(0, Math.min(y, canvas.height - logoSize));
+          }
+          
+          // Store position
+          positions.push({ x, y });
+        }
+      };
+      
+      // Pre-calculate all positions
+      calculatePositions();
+      
+      // Draw frames one by one
+      for (let i = 0; i < framesCount; i++) {
+        // Clear canvas
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Get pre-calculated position
+        const pos = positions[i];
+        
+        // Draw logo
+        if (customImage && logoImg) {
+          // Draw uploaded logo image
+          ctx.drawImage(logoImg, pos.x, pos.y, logoSize, logoSize);
+        } else {
+          // Draw default logo (circle with gradient)
+          ctx.beginPath();
+          ctx.arc(pos.x + (logoSize/2), pos.y + (logoSize/2), logoSize/2, 0, Math.PI * 2);
+          
+          // Create gradient - alternate colors
+          let gradientColors;
+          if (i % 3 === 0) {
+            gradientColors = ['#4ade80', '#3b82f6']; // green to blue
+          } else if (i % 3 === 1) {
+            gradientColors = ['#ec4899', '#eab308']; // pink to yellow
+          } else {
+            gradientColors = ['#c084fc', '#ec4899']; // purple to pink
+          }
+          
+          const gradient = ctx.createLinearGradient(pos.x, pos.y, pos.x + logoSize, pos.y + logoSize);
+          gradient.addColorStop(0, gradientColors[0]);
+          gradient.addColorStop(1, gradientColors[1]);
+          
+          ctx.fillStyle = gradient;
+          ctx.fill();
         }
         
-        console.log(`Adding ${frames.length} frames to GIF...`);
+        // Update progress for frame capturing phase
+        setEncodingProgress(Math.floor((i / framesCount) * 50));
         
-        // Add frames in smaller batches with delay to prevent worker issues
-        const addFramesInBatches = async () => {
-          const batchSize = 5;
-          
-          for (let i = 0; i < frames.length; i += batchSize) {
-            const batch = frames.slice(i, Math.min(i + batchSize, frames.length));
-            
-            for (const frame of batch) {
-              gif.addFrame(frame, { delay: frameDelay, copy: true });
-            }
-            
-            // Add a small delay between batches to prevent worker overload
-            if (i + batchSize < frames.length) {
-              await new Promise(r => setTimeout(r, 100));
-            }
-            
-            setEncodingProgress(Math.min(85 + Math.floor((i / frames.length) * 10), 95));
-          }
-        };
+        // Add the frame to the GIF
+        gif.addFrame(canvas, { delay: frameDelay, copy: true });
         
-        // Add the progress handler
-        gif.on('progress', (progress: number) => {
-          console.log(`Real GIF progress: ${progress}`);
-          // Only update UI progress if it's higher than our fake progress
-          const calculatedProgress = Math.floor(progress * 100);
-          if (calculatedProgress > 85) {
-            setEncodingProgress(calculatedProgress);
-          }
-        });
-        
-        // Handle completion
-        gif.on('finished', (blob: Blob) => {
-          console.log(`GIF generation completed, size: ${blob.size} bytes`);
-          clearTimeout(forceCompleteTimeout);
-          
-          if (blob.size === 0) {
-            console.error('Generated GIF blob is empty');
-            setIsGenerating(false);
-            setShowDownloadModal(false);
-            return;
-          }
-          
-          try {
-            // Create a new blob with explicit type
-            const gifBlob = new Blob([blob], { type: 'image/gif' });
-            const url = URL.createObjectURL(gifBlob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `bouncing-logo-${selectedFormat}-${Date.now()}.gif`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            
-            setTimeout(() => {
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              setIsGenerating(false);
-              setShowDownloadModal(false);
-            }, 1000);
-          } catch (error) {
-            console.error('Download error:', error);
-            setIsGenerating(false);
-            setShowDownloadModal(false);
-          }
-        });
-        
-        // Add the frames and render
-        addFramesInBatches().then(() => {
-          try {
-            console.log("All frames added, rendering GIF...");
-            setEncodingProgress(95);
-            gif.render();
-          } catch (error) {
-            console.error("Error rendering GIF:", error);
-            clearTimeout(forceCompleteTimeout);
-            setIsGenerating(false);
-            setShowDownloadModal(false);
-          }
-        });
-      }).catch(error => {
-        console.error("Frame capture error:", error);
-        clearTimeout(forceCompleteTimeout);
-        setIsGenerating(false);
-        setShowDownloadModal(false);
-      });
+        // Small delay between frame generation to prevent UI freezing
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      
+      // Start rendering the GIF
+      console.log("All frames captured, rendering GIF now");
+      setEncodingProgress(50); // Frame capture complete, now rendering
+      
+      // Render the GIF (this triggers the 'progress' and 'finished' events)
+      gif.render();
       
     } catch (error) {
-      console.error("Global GIF recording error:", error);
+      console.error("Error during GIF generation:", error);
       setIsGenerating(false);
       setShowDownloadModal(false);
     }
@@ -416,7 +314,6 @@ const DVDContainer: React.FC = () => {
 
   const handleDownloadVideo = () => {
     setShowDownloadModal(true);
-
     startRecording();
   };
 
@@ -438,6 +335,7 @@ const DVDContainer: React.FC = () => {
             customImage={customImage} 
             containerWidth={containerDimensions.width} 
             containerHeight={containerDimensions.height}
+            ref={setLogoRefCallback}
           />
           
           {isGenerating && (

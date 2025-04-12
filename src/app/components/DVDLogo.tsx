@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 interface DVDLogoProps {
   customImage: string | null;
@@ -8,7 +8,8 @@ interface DVDLogoProps {
   containerHeight: number;
 }
 
-const DVDLogo: React.FC<DVDLogoProps> = ({ customImage, containerWidth, containerHeight }) => {
+// Use forwardRef to allow parent component to access this component's DOM
+const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({ customImage, containerWidth, containerHeight }, ref) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [direction, setDirection] = useState({ x: 1, y: 1 });
   const [color, setColor] = useState<string>('linear-gradient(to right, #4ade80, #3b82f6)');
@@ -85,6 +86,7 @@ const DVDLogo: React.FC<DVDLogoProps> = ({ customImage, containerWidth, containe
 
   return (
     <div
+      ref={ref}
       className="w-[72px] h-[72px] absolute rounded-full shadow-md"
       style={{
         transform: `translate(${position.x}px, ${position.y}px)`,
@@ -94,6 +96,9 @@ const DVDLogo: React.FC<DVDLogoProps> = ({ customImage, containerWidth, containe
       }}
     />
   );
-};
+});
+
+// Display name for debugging
+DVDLogo.displayName = 'DVDLogo';
 
 export default DVDLogo; 
