@@ -661,6 +661,17 @@ const DVDContainer: React.FC = () => {
     }
   };
 
+  // Set initial format based on device on first render
+  useEffect(() => {
+    // Check if this is a mobile device
+    const isMobile = window.innerWidth < 640;
+    
+    // Set format to 9:16 for mobile, 16:9 for desktop
+    if (isMobile) {
+      handleFormatSelect('9:16');
+    }
+  }, []);  // Empty dependency array ensures this runs once on mount
+
   // Prepare container class names to avoid template literal nesting issues
   let containerClassName = 'flex flex-col items-center justify-center min-h-screen';
   
