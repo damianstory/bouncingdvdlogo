@@ -661,16 +661,20 @@ const DVDContainer: React.FC = () => {
     }
   };
 
-  // Set initial format based on device on first render
+  // Create a useEffect hook for initial format setting and make it high priority
   useEffect(() => {
-    // Check if this is a mobile device
-    const isMobile = window.innerWidth < 640;
+    // Skip this effect in SSR
+    if (typeof window === 'undefined') return;
     
-    // Set format to 9:16 for mobile, 16:9 for desktop
+    // Set format to 9:16 on small screens
+    const isMobile = window.innerWidth < 640;
     if (isMobile) {
-      handleFormatSelect('9:16');
+      setTimeout(() => {
+        handleFormatSelect('9:16');
+      }, 0);
     }
-  }, []);  // Empty dependency array ensures this runs once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array with ESLint exception
 
   // Prepare container class names to avoid template literal nesting issues
   let containerClassName = 'flex flex-col items-center justify-center min-h-screen';
