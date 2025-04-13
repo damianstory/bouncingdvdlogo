@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npm rebuild --platform=linux --arch=x64"
+    "postinstall": "node -e \"try { require('fs').unlinkSync('./node_modules/@tailwindcss/postcss/package.json.bak') } catch {}\""
   },
   "keywords": [],
   "author": "",
