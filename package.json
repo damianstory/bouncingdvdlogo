@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "node -e \"try { require('fs').unlinkSync('./node_modules/@tailwindcss/postcss/package.json.bak') } catch {}\""
+    "postinstall": "npm install --no-save lightningcss@latest-linux-x64-gnu"
   },
   "keywords": [],
   "author": "",
@@ -45,8 +45,5 @@
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "typescript": "^5.3.3"
-  },
-  "overrides": {
-    "lightningcss": "2.2.0"
   }
 }
