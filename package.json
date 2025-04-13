@@ -7,14 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npm install --no-save lightningcss@latest-linux-x64-gnu"
+    "postinstall": "echo 'Skipping postinstall'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@tailwindcss/postcss": "^4.0.0",
     "autoprefixer": "^10.4.14",
     "@tippyjs/react": "4.2.6",
     "daisyui": "^3.5.0",
