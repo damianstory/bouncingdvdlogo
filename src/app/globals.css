@@ -3,6 +3,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@tailwind daisyui;
 
 :root {
   --foreground-rgb: 0, 0, 0;
@@ -288,4 +289,28 @@ footer p {
   color: white !important;
   background: linear-gradient(to bottom, #121212, #2e1a22) !important;
   background-attachment: fixed !important;
+}
+
+/* Custom styles for daisyUI buttons */
+.btn {
+  background-color: white !important;
+  color: black !important;
+  border: 1px solid #e5e7eb !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+
+.btn:hover {
+  background-color: #f9fafb !important;
+  border-color: #a5b4fc !important;
+}
+
+.btn-active {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-disabled {
+  background-color: #e5e7eb !important;
+  color: #6b7280 !important;
+  cursor: not-allowed !important;
 }

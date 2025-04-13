@@ -334,7 +334,10 @@ const DVDContainer: React.FC = () => {
       reader.onload = (event) => {
         if (event.target?.result) {
           setCustomImage(event.target.result as string);
-          setShowUploadModal(false);
+          
+          // Close the dialog modal
+          const modal = document.getElementById('upload_modal') as HTMLDialogElement;
+          if (modal) modal.close();
           
           // Show a little confirmation
           setTimeout(() => {
@@ -727,7 +730,7 @@ const DVDContainer: React.FC = () => {
         <div className="fixed bottom-0 left-0 w-full flex justify-center pb-8 z-50">
           <button
             onClick={toggleFullScreen}
-            className="exit-fullscreen-button"
+            className="btn btn-sm"
           >
             Exit Full Screen
           </button>
@@ -737,84 +740,58 @@ const DVDContainer: React.FC = () => {
       {!isFullScreen && (
         <div className="w-full max-w-md mx-auto mt-10 mb-6">
           <div className="text-center mb-6">
-            <div className="flex justify-center gap-8 mb-8">
+            <div className="flex flex-wrap justify-center gap-6 mb-8 p-4 bg-black">
               <button 
                 onClick={() => handleFormatSelect('9:16')}
-                className={`w-20 h-20 flex flex-col items-center justify-center rounded-lg transition-all duration-200 p-3 border-2 ${
-                  selectedFormat === '9:16' 
-                    ? 'bg-white text-black border-indigo-400 shadow-md' 
-                    : 'bg-white border-gray-300 text-black hover:border-indigo-300 hover:scale-105'
-                }`}
+                className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '9:16' ? 'btn-active' : ''} btn-primary m-2`}
                 title="Mobile (9:16)"
               >
-                <svg viewBox="0 0 24 24" className="w-10 h-10 mb-1">
-                  <rect x="8" y="4" width="8" height="16" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                </svg>
-                <span className="text-xs mt-auto">9:16</span>
+                9:16
               </button>
               
               <button 
                 onClick={() => handleFormatSelect('1:1')}
-                className={`w-20 h-20 flex flex-col items-center justify-center rounded-lg transition-all duration-200 p-3 border-2 ${
-                  selectedFormat === '1:1' 
-                    ? 'bg-white text-black border-indigo-400 shadow-md' 
-                    : 'bg-white border-gray-300 text-black hover:border-indigo-300 hover:scale-105'
-                }`}
+                className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '1:1' ? 'btn-active' : ''} btn-secondary m-2`}
                 title="Square (1:1)"
               >
-                <svg viewBox="0 0 24 24" className="w-10 h-10 mb-1">
-                  <rect x="6" y="6" width="12" height="12" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                </svg>
-                <span className="text-xs mt-auto">1:1</span>
+                1:1
               </button>
               
               <button 
                 onClick={() => handleFormatSelect('16:9')}
-                className={`w-20 h-20 flex flex-col items-center justify-center rounded-lg transition-all duration-200 p-3 border-2 ${
-                  selectedFormat === '16:9' 
-                    ? 'bg-white text-black border-indigo-400 shadow-md' 
-                    : 'bg-white border-gray-300 text-black hover:border-indigo-300 hover:scale-105'
-                }`}
+                className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '16:9' ? 'btn-active' : ''} btn-accent m-2`}
                 title="Widescreen (16:9)"
               >
-                <svg viewBox="0 0 24 24" className="w-10 h-10 mb-1">
-                  <rect x="4" y="8" width="16" height="8" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                </svg>
-                <span className="text-xs mt-auto">16:9</span>
+                16:9
               </button>
               
               <button 
                 onClick={toggleFullScreen}
-                className={`w-20 h-20 flex flex-col items-center justify-center rounded-lg transition-all duration-200 p-3 border-2 ${
-                  isFullScreen 
-                    ? 'bg-white text-black border-indigo-400 shadow-md' 
-                    : 'bg-white border-gray-300 text-black hover:border-indigo-300 hover:scale-105'
-                }`}
+                className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFullScreen ? 'btn-active' : ''} btn-info m-2`}
                 title="Full Screen"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mb-1">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                </svg>
-                <span className="text-xs mt-auto">Full</span>
+                Full
               </button>
             </div>
           </div>
           
-          <div className="flex flex-col gap-4 w-full max-w-sm mx-auto">
+          <div className="flex flex-col gap-4 w-full max-w-sm mx-auto mt-2">
             {customImage ? (
               <button
                 onClick={handleDownloadGIF}
-                className="w-full bg-white text-black font-medium py-3 px-8 rounded-lg shadow-lg hover:bg-gray-100 hover:shadow-xl transition-all duration-200 min-h-[48px] flex items-center justify-center gap-2"
+                className="btn btn-md btn-block"
               >
-                <FiDownload className="text-xl" />
+                <FiDownload className="text-lg mr-2" />
                 <span>Download GIF</span>
               </button>
             ) : (
               <button
-                onClick={() => setShowUploadModal(true)}
-                className="w-full bg-white text-black font-medium py-3 px-8 rounded-lg shadow-md hover:bg-gray-100 hover:shadow-lg transition-all duration-200 min-h-[48px] flex items-center justify-center gap-2"
+                onClick={() => {
+                  const modal = document.getElementById('upload_modal') as HTMLDialogElement;
+                  if (modal) modal.showModal();
+                }}
+                className="btn btn-outline btn-primary btn-md max-w-[240px] mx-auto font-bold"
               >
-                <FiUpload className="text-xl" />
                 <span>Upload Your Logo</span>
               </button>
             )}
@@ -822,47 +799,40 @@ const DVDContainer: React.FC = () => {
         </div>
       )}
 
-      {showUploadModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-8 rounded-lg w-full max-w-md mx-auto flex flex-col space-y-4">
-            <h3 className="text-xl font-bold mb-4 text-center text-black" style={{ color: 'black !important' }}>Upload Your Logo</h3>
-            <div className="mb-8 p-6 border-2 border-dashed border-gray-400 rounded-lg text-center bg-white">
-              <input 
-                id="file-upload"
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleImageUpload}
-              />
-              <label 
-                htmlFor="file-upload" 
-                className="inline-flex items-center justify-center px-8 py-4 bg-[#e0e0e0] text-[#333333] rounded-lg shadow-md hover:bg-[#d0d0d0] hover:scale-105 border-2 border-gray-300 transition-all duration-200 cursor-pointer mb-4 w-full max-w-xs font-semibold"
-              >
-                <FiPlus className="mr-2 text-xl" />
-                Choose Image
-              </label>
-              {!customImage && <FiUpload className="mx-auto text-5xl mb-4 text-gray-500" />}
-              {!customImage && <p className="text-gray-600">Recommended: 400 x 400px</p>}
-              {customImage && <p className="text-green-600 font-medium">File selected: {customImage.split('/').pop()}</p>}
-            </div>
-            
-            <div className="bg-blue-100 p-4 rounded-md mb-4">
-              <p className="recommendation-text" style={{ color: 'black !important', fontWeight: 500 }}>
-                It's going to become a circle
-              </p>
-            </div>
-
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="w-full py-3 px-4 bg-[#e0e0e0] hover:bg-[#d0d0d0] text-[#333333] rounded-lg font-medium transition-all duration-200 border-2 border-gray-300 hover:scale-105"
-              >
-                Cancel
-              </button>
-            </div>
+      <dialog id="upload_modal" className="modal modal-bottom sm:modal-middle">
+        <div className="modal-box text-center">
+          <h3 className="font-bold text-lg">Upload Your Logo</h3>
+          <div className="py-4 border-2 border-dashed border-gray-400 rounded-lg text-center mt-4 flex flex-col items-center justify-center">
+            <input 
+              id="file-upload"
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={handleImageUpload}
+            />
+            <label 
+              htmlFor="file-upload" 
+              className="btn btn-md w-full mb-4 py-6"
+            >
+              Choose Image
+            </label>
+            {customImage && <p className="text-green-600 font-medium">File selected: {customImage.split('/').pop()}</p>}
+          </div>
+          
+          <div className="bg-blue-100 p-4 rounded-md mt-2">
+            {!customImage && <p className="recommendation-text font-medium text-black mb-0">Recommended: 400 x 400px</p>}
+            <p className="recommendation-text font-medium text-black">
+              It's going to become a circle
+            </p>
+          </div>
+          
+          <div className="modal-action flex justify-center">
+            <form method="dialog" className="text-center">
+              <button className="btn">Cancel</button>
+            </form>
           </div>
         </div>
-      )}
+      </dialog>
       
       {showDownloadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -910,10 +880,10 @@ const DVDContainer: React.FC = () => {
                 setIsGenerating(false);
                 setShowDownloadModal(false);
               }}
-              className={`w-full py-2 px-4 rounded-lg transition-colors duration-200 ${
+              className={`btn btn-md btn-block ${
                 encodingProgress < 100
-                  ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                  : 'bg-white text-black border-2 border-gray-300 hover:border-indigo-300 hover:scale-105 shadow-md'
+                  ? 'btn-disabled'
+                  : ''
               }`}
             >
               {encodingProgress < 100 ? 'Cancel' : 'Done'}
