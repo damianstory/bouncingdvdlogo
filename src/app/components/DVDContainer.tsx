@@ -113,6 +113,7 @@ const DVDContainer: React.FC = () => {
   const [isRetroMode, setIsRetroMode] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isMobileView, setIsMobileView] = useState(false);
   
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -661,6 +662,22 @@ const DVDContainer: React.FC = () => {
     }
   };
 
+  // Add this useEffect hook to detect mobile screens
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 640); // Standard small breakpoint
+    };
+    
+    // Initial check
+    checkMobileView();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobileView);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []);
+
   // Prepare container class names to avoid template literal nesting issues
   let containerClassName = 'flex flex-col items-center justify-center min-h-screen';
   
@@ -718,21 +735,26 @@ const DVDContainer: React.FC = () => {
                   9:16
                 </button>
                 
-                <button 
-                  onClick={() => handleFormatSelect('1:1')}
-                  className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFormat(selectedFormat, '1:1') ? 'btn-active' : ''} btn-neutral m-1`}
-                  title="Square format, ideal for social media"
-                >
-                  1:1
-                </button>
-                
-                <button 
-                  onClick={() => handleFormatSelect('16:9')}
-                  className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFormat(selectedFormat, '16:9') ? 'btn-active' : ''} btn-neutral m-1`}
-                  title="Widescreen format, ideal for presentations"
-                >
-                  16:9
-                </button>
+                {/* Only show these buttons on non-mobile views */}
+                {!isMobileView && (
+                  <>
+                    <button 
+                      onClick={() => handleFormatSelect('1:1')}
+                      className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFormat(selectedFormat, '1:1') ? 'btn-active' : ''} btn-neutral m-1`}
+                      title="Square format, ideal for social media"
+                    >
+                      1:1
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleFormatSelect('16:9')}
+                      className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFormat(selectedFormat, '16:9') ? 'btn-active' : ''} btn-neutral m-1`}
+                      title="Widescreen format, ideal for presentations"
+                    >
+                      16:9
+                    </button>
+                  </>
+                )}
                 
                 <button 
                   onClick={toggleFullScreen}
@@ -831,21 +853,26 @@ const DVDContainer: React.FC = () => {
                   9:16
                 </button>
                 
-                <button 
-                  onClick={() => handleFormatSelect('1:1')}
-                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFormat(selectedFormat, '1:1') ? 'btn-active' : ''} btn-neutral m-2`}
-                  title="Square format, ideal for social media"
-                >
-                  1:1
-                </button>
-                
-                <button 
-                  onClick={() => handleFormatSelect('16:9')}
-                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFormat(selectedFormat, '16:9') ? 'btn-active' : ''} btn-neutral m-2`}
-                  title="Widescreen format, ideal for presentations"
-                >
-                  16:9
-                </button>
+                {/* Only show these buttons on non-mobile views */}
+                {!isMobileView && (
+                  <>
+                    <button 
+                      onClick={() => handleFormatSelect('1:1')}
+                      className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFormat(selectedFormat, '1:1') ? 'btn-active' : ''} btn-neutral m-2`}
+                      title="Square format, ideal for social media"
+                    >
+                      1:1
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleFormatSelect('16:9')}
+                      className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFormat(selectedFormat, '16:9') ? 'btn-active' : ''} btn-neutral m-2`}
+                      title="Widescreen format, ideal for presentations"
+                    >
+                      16:9
+                    </button>
+                  </>
+                )}
                 
                 <button 
                   onClick={toggleFullScreen}
