@@ -10,6 +10,7 @@ interface DVDLogoProps {
   logoColor?: { start: string; end: string };
   logoSize?: 'small' | 'medium' | 'large';
   customText?: string;
+  speed?: number; // New prop for customizable speed
 }
 
 // Use forwardRef to allow parent component to access this component's DOM
@@ -19,7 +20,8 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
   containerHeight,
   logoColor,
   logoSize = 'medium',
-  customText
+  customText,
+  speed = 4.5 // Default speed increased from 3 to 4.5
 }, ref) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [direction, setDirection] = useState({ x: 1, y: 1 });
@@ -40,7 +42,34 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
   };
   
   const logoSizePixels = getLogoSizeInPixels();
-  const speed = 3; // Speed of movement
+
+  // Helper function to calculate direction vector from angle
+  const getDirectionFromAngle = (angleDegrees: number) => {
+    // Convert angle to radians
+    const angleRadians = (angleDegrees * Math.PI) / 180;
+    
+    // Calculate direction vector components
+    const x = Math.cos(angleRadians);
+    const y = Math.sin(angleRadians);
+    
+    // Return normalized vector to maintain consistent speed
+    return { x, y };
+  };
+
+  // Set initial random direction on mount
+  useEffect(() => {
+    // Generate a random angle between 30-60 degrees
+    const baseAngle = 30 + Math.random() * 30;
+    
+    // Randomly decide whether to use first quadrant (30-60°) or third quadrant (210-240°)
+    const finalAngle = Math.random() > 0.5 ? baseAngle : baseAngle + 180;
+    
+    // Calculate direction vector from angle
+    const newDirection = getDirectionFromAngle(finalAngle);
+    
+    console.log(`Setting initial direction with angle: ${finalAngle}°`, newDirection);
+    setDirection(newDirection);
+  }, []); // Empty dependency array means this runs once on mount
 
   // Modern gradients that look good together
   const colors = [
@@ -60,8 +89,24 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
 
   // Set initial position
   useEffect(() => {
-    const initX = Math.random() * (containerWidth - logoSizePixels);
-    const initY = Math.random() * (containerHeight - logoSizePixels);
+    if (containerWidth === 0 || containerHeight === 0) {
+      return; // Skip if container dimensions aren't ready
+    }
+    
+    // Ensure we're using valid dimensions
+    const validWidth = Math.max(containerWidth, logoSizePixels);
+    const validHeight = Math.max(containerHeight, logoSizePixels);
+    
+    // Calculate initial position with safe bounds
+    const initX = Math.max(0, Math.min(
+      Math.random() * (validWidth - logoSizePixels),
+      validWidth - logoSizePixels
+    ));
+    const initY = Math.max(0, Math.min(
+      Math.random() * (validHeight - logoSizePixels),
+      validHeight - logoSizePixels
+    ));
+    
     console.log("Setting initial position:", { x: initX, y: initY }, "Container:", { width: containerWidth, height: containerHeight });
     setPosition({
       x: initX,
@@ -87,14 +132,14 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
         let newDirectionY = direction.y;
         let shouldChangeColor = false;
         
-        // Check for X boundary collision
-        if (newX <= 0 || newX >= containerWidth - logoSizePixels) {
+        // Check for X boundary collision - use consistent approach for both sides
+        if (newX <= 0 || newX + logoSizePixels >= containerWidth) {
           newDirectionX = -direction.x;
           shouldChangeColor = true;
         }
         
-        // Check for Y boundary collision
-        if (newY <= 0 || newY >= containerHeight - logoSizePixels) {
+        // Check for Y boundary collision - ensure the logo hits the exact boundary
+        if (newY <= 0 || newY + logoSizePixels >= containerHeight) {
           newDirectionY = -direction.y;
           shouldChangeColor = true;
         }
@@ -107,9 +152,10 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
           }
         }
         
+        // Ensure consistent boundary enforcement for all sides
         return {
-          x: newX <= 0 ? 0 : newX >= containerWidth - logoSizePixels ? containerWidth - logoSizePixels : newX,
-          y: newY <= 0 ? 0 : newY >= containerHeight - logoSizePixels ? containerHeight - logoSizePixels : newY
+          x: newX <= 0 ? 0 : newX + logoSizePixels >= containerWidth ? containerWidth - logoSizePixels : newX,
+          y: newY <= 0 ? 0 : newY + logoSizePixels >= containerHeight ? containerHeight - logoSizePixels : newY
         };
       });
     };
@@ -119,12 +165,12 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
     return () => {
       clearInterval(animationId);
     };
-  }, [direction, containerWidth, containerHeight, logoSizePixels, logoColor]);
+  }, [direction, containerWidth, containerHeight, logoSizePixels, logoColor, speed]);
 
   return (
     <div
       ref={ref}
-      className={`absolute rounded-lg shadow-lg transition-transform duration-300 ease-out flex items-center justify-center overflow-hidden`}
+      className={`absolute rounded-full shadow-lg transition-transform duration-300 ease-out flex items-center justify-center overflow-hidden`}
       style={{
         transform: `translate(${position.x}px, ${position.y}px)`,
         backgroundImage: customImage ? `url(${customImage})` : color,
@@ -133,6 +179,7 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
         transition: 'background-image 0.3s ease-in-out', // Smooth color transition
         width: `${logoSizePixels}px`,
         height: `${logoSizePixels}px`,
+        borderRadius: '50%'
       }}
     >
       {customText && (

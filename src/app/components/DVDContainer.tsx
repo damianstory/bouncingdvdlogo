@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DVDLogo from './DVDLogo';
 import GIF from 'gif.js';
 import { FiDownload, FiUpload, FiPlus } from 'react-icons/fi';
@@ -168,6 +168,30 @@ const DVDContainer: React.FC = () => {
     }
   };
 
+  // Add a debounced function to synchronize dimensions
+  const debouncedUpdateDimensions = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      
+      // Force update dimensions with actual DOM values
+      setContainerDimensions({
+        width: rect.width,
+        height: rect.height
+      });
+      
+      console.log("Synchronized dimensions:", { width: rect.width, height: rect.height });
+    }
+  }, []);
+
+  // Ensure dimensions are updated after format changes with a slight delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      debouncedUpdateDimensions();
+    }, 50); // Small delay to allow DOM to update
+    
+    return () => clearTimeout(timer);
+  }, [selectedFormat, isFullScreen, debouncedUpdateDimensions]);
+
   useEffect(() => {
     const updateContainerDimensions = () => {
       if (containerRef.current) {
@@ -196,6 +220,50 @@ const DVDContainer: React.FC = () => {
     };
   }, [selectedFormat, isFullScreen]);
 
+  // Add a more accurate way to measure the container using getBoundingClientRect()
+  useEffect(() => {
+    // Function to get precise dimensions from the actual DOM element
+    const updatePreciseDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        
+        // Only update if there's a meaningful difference (prevents infinite loops)
+        if (Math.abs(rect.width - containerDimensions.width) > 1 || 
+            Math.abs(rect.height - containerDimensions.height) > 1) {
+          console.log("Updating to precise dimensions:", { width: rect.width, height: rect.height });
+          setContainerDimensions({
+            width: rect.width,
+            height: rect.height
+          });
+        }
+      }
+    };
+
+    // Run after initial render and any style/layout changes
+    updatePreciseDimensions();
+    
+    // Use ResizeObserver for more accurate dimension tracking
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === containerRef.current) {
+          updatePreciseDimensions();
+        }
+      }
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Cleanup
+    return () => {
+      if (containerRef.current) {
+        resizeObserver.unobserve(containerRef.current);
+      }
+      resizeObserver.disconnect();
+    };
+  }, [selectedFormat, isFullScreen]); // Rerun when format changes or fullscreen toggle
+
   useEffect(() => {
     if (!isFullScreen) {
       const dimensions = getContainerDimensions(selectedFormat);
@@ -207,10 +275,42 @@ const DVDContainer: React.FC = () => {
     }
   }, [selectedFormat, isFullScreen]);
   
+  // Add a debug function to log dimensions
+  useEffect(() => {
+    if (debugMode && containerRef.current && logoRef.current) {
+      const logDimensions = () => {
+        const containerRect = containerRef.current?.getBoundingClientRect();
+        const logoRect = logoRef.current?.getBoundingClientRect();
+        
+        console.log("Debug dimensions:", {
+          container: {
+            width: containerRect?.width,
+            height: containerRect?.height,
+            state: containerDimensions
+          },
+          logo: {
+            width: logoRect?.width,
+            height: logoRect?.height,
+            position: animationStateRef.current.position
+          }
+        });
+      };
+      
+      // Log on first render and every second after
+      logDimensions();
+      const interval = setInterval(logDimensions, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [debugMode, containerDimensions]);
+  
   // Format selection handler
   const handleFormatSelect = (format: AspectRatio) => {
     setSelectedFormat(format);
     setShowFormatModal(false);
+    
+    // Trigger dimension update after format change
+    setTimeout(debouncedUpdateDimensions, 50);
   };
 
   // Image upload handler with preview and validation
@@ -239,7 +339,7 @@ const DVDContainer: React.FC = () => {
           // Show a little confirmation
           setTimeout(() => {
             setShowConfetti(true);
-            setTimeout(() => setShowConfetti(false), 3000);
+            setTimeout(() => setShowConfetti(false), 5000);
           }, 500);
         }
       };
@@ -250,14 +350,17 @@ const DVDContainer: React.FC = () => {
   // Update animation state
   const updateAnimationState = (timestamp: number) => {
     const { position, direction, size } = animationStateRef.current;
-    const canvasWidth = canvasRef.current?.width || containerDimensions.width;
-    const canvasHeight = canvasRef.current?.height || containerDimensions.height;
+    
+    // Get real-time container dimensions from the DOM for accurate collision detection
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const canvasWidth = containerRect?.width || containerDimensions.width;
+    const canvasHeight = containerRect?.height || containerDimensions.height;
     
     // Update position based on direction
     position.x += direction.x * animationSpeed;
     position.y += direction.y * animationSpeed;
     
-    // Handle boundary collisions
+    // Handle boundary collisions with precise dimensions
     if (position.x <= 0 || position.x + size >= canvasWidth) {
       direction.x *= -1;
       position.x = Math.max(0, Math.min(position.x, canvasWidth - size));
@@ -296,6 +399,10 @@ const DVDContainer: React.FC = () => {
     low: { quality: 20, workers: 2, delay: 100, fps: 10 }    // 10fps, low quality
   };
 
+  // Default GIF duration in seconds
+  const DEFAULT_GIF_DURATION = 10;
+  const [gifDuration, setGifDuration] = useState<number>(DEFAULT_GIF_DURATION);
+
   // Handle download button click
   const handleDownloadGIF = () => {
     setShowDownloadModal(true);
@@ -319,18 +426,48 @@ const DVDContainer: React.FC = () => {
     setEncodingProgress(0);
     
     try {
-      // Create GIF with settings
+      // Setup canvas for capture FIRST
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error("Could not get canvas context");
+      }
+      
+      // Get accurate container dimensions
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const actualWidth = containerRect.width;
+      const actualHeight = containerRect.height;
+      
+      console.log("Container dimensions for GIF:", { 
+        format: selectedFormat,
+        width: actualWidth, 
+        height: actualHeight 
+      });
+      
+      // Prepare canvas with ACCURATE dimensions
+      canvas.width = actualWidth;
+      canvas.height = actualHeight;
+      
+      // AFTER setting canvas size, create GIF with matching dimensions
       const settings = qualitySettings[gifQuality];
       const gif = new GIF({
         workers: settings.workers,
         quality: settings.quality,
-        width: canvasRef.current.width,
-        height: canvasRef.current.height,
+        width: canvas.width,
+        height: canvas.height,
         workerScript: '/gif.worker.js',
         repeat: 0,
         background: '#ffffff',
         dither: false
       });
+      
+      // Calculate frame parameters for precise duration
+      const framesPerSecond = settings.fps;
+      const frameDelay = settings.delay; // ms between frames
+      const totalFrames = Math.ceil(gifDuration * framesPerSecond);
+      const expectedDuration = totalFrames * frameDelay;
+      
+      console.log(`Generating ${totalFrames} frames at ${framesPerSecond}fps (${frameDelay}ms delay) for a ${gifDuration}-second GIF (${expectedDuration}ms total)`);
       
       // Setup GIF generation state
       gifGenerationRef.current = {
@@ -340,30 +477,151 @@ const DVDContainer: React.FC = () => {
         frameCount: 0,
         gif,
         startTime: Date.now(),
-        duration: 5000,  // 5 seconds for demo
+        duration: gifDuration * 1000,  // Convert to milliseconds
         quality: gifQuality
       };
       
-      // Capture a few frames
-      for (let i = 0; i < 30; i++) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        setEncodingProgress(Math.min(90, Math.floor((i / 30) * 90)));
+      // Track elapsed time for accurate duration
+      let capturedFrames = 0;
+      let startTime = performance.now();
+      const targetDuration = gifDuration * 1000; // ms
+      
+      // Clear any existing animation frame
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
       
-      // Finish GIF generation
-      setEncodingProgress(100);
-      setShowConfetti(true);
+      // Use requestAnimationFrame for better synchronization with display refresh
+      const captureFrame = async (timestamp: number) => {
+        const elapsedTime = performance.now() - startTime;
+        const progress = Math.min(90, Math.floor((elapsedTime / targetDuration) * 90));
+        
+        // Update progress bar
+        setEncodingProgress(progress);
+        
+        // Draw frame on canvas
+        // Clear canvas
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw current state of DVD logo
+        if (logoRef.current) {
+          const rect = logoRef.current.getBoundingClientRect();
+          const containerRect = containerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+          
+          // Drawing a colored circle/square based on current logo style
+          ctx.save();
+          const posX = rect.left - containerRect.left;
+          const posY = rect.top - containerRect.top;
+          const size = rect.width;
+          
+          // Use the same background as the logo
+          if (customImage) {
+            const img = new Image();
+            img.src = customImage;
+            ctx.drawImage(img, posX, posY, size, size);
+          } else {
+            // Create a gradient similar to the logo color
+            const gradient = ctx.createLinearGradient(posX, posY, posX + size, posY + size);
+            gradient.addColorStop(0, animationStateRef.current.color.start);
+            gradient.addColorStop(1, animationStateRef.current.color.end);
+            ctx.fillStyle = gradient;
+            
+            // Draw circle if the logo is a circle
+            ctx.beginPath();
+            ctx.arc(posX + size/2, posY + size/2, size/2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+        
+        // Add frame to GIF - only add frames at the rate specified by frameDelay
+        if (capturedFrames === 0 || timestamp - lastCaptureTime >= frameDelay) {
+          gif.addFrame(canvas, { copy: true, delay: frameDelay });
+          capturedFrames++;
+          lastCaptureTime = timestamp;
+        }
+        
+        // Update position for next frame - ensure smooth animation between frames
+        updateAnimationState(timestamp);
+        
+        // Continue capturing until we reach target duration
+        if (elapsedTime < targetDuration && capturedFrames < totalFrames) {
+          animationFrameRef.current = requestAnimationFrame(captureFrame);
+        } else {
+          // Finish GIF generation
+          console.log(`Captured ${capturedFrames} frames in ${elapsedTime}ms`);
+          setEncodingProgress(95);
+          
+          // Render the GIF
+          renderGif(gif);
+        }
+      };
       
-      // Mock download completed
-      setTimeout(() => {
-        setIsGenerating(false);
-        setShowDownloadModal(false);
-        setShowConfetti(false);
-      }, 2000);
+      // Track last capture time for proper frame spacing
+      let lastCaptureTime = performance.now();
+      
+      // Start the frame capture process
+      animationFrameRef.current = requestAnimationFrame(captureFrame);
+      
+      // Function to handle GIF rendering and download
+      const renderGif = (gif: any) => {
+        // Add event listeners for GIF rendering
+        gif.on('progress', (p: number) => {
+          const progressValue = 95 + Math.floor(p * 5); // From 95% to 100%
+          setEncodingProgress(progressValue);
+        });
+        
+        // Handle the finished GIF
+        gif.on('finished', (blob: Blob) => {
+          // Set progress to 100%
+          setEncodingProgress(100);
+          
+          // Create a download URL from the blob
+          const url = URL.createObjectURL(blob);
+          
+          // Create a temporary anchor element to trigger download
+          const downloadLink = document.createElement('a');
+          downloadLink.href = url;
+          
+          // Format filename correctly based on actual dimensions
+          const aspectText = canvas.width > canvas.height 
+            ? "landscape" 
+            : canvas.width === canvas.height 
+              ? "square" 
+              : "portrait";
+          downloadLink.download = `dvd-logo-${aspectText}-${canvas.width}x${canvas.height}-${gifDuration}s.gif`;
+          
+          // Append to document, trigger click, and remove
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          
+          // Clean up by revoking the object URL
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 100);
+          
+          // Close the download modal after a short delay
+          setTimeout(() => {
+            setIsGenerating(false);
+            setShowDownloadModal(false);
+          }, 2000);
+        });
+        
+        // Render the GIF (this will trigger the 'finished' event when done)
+        gif.render();
+      };
+      
     } catch (error) {
       console.error("GIF generation error:", error);
       setIsGenerating(false);
       setShowDownloadModal(false);
+      
+      // Clean up any ongoing animation
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     }
   };
 
