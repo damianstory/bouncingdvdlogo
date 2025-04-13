@@ -775,59 +775,61 @@ const DVDContainer: React.FC = () => {
       {!isFullScreen && (
         <div className="w-full max-w-md mx-auto mt-10 mb-6" style={{ marginTop: '15px' }}>
           <div className="text-center mb-6">
-            <div className="flex flex-wrap justify-center gap-6 mb-8 p-4 bg-black">
-              <button 
-                onClick={() => handleFormatSelect('9:16')}
-                className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '9:16' ? 'btn-active' : ''} btn-primary m-2`}
-                title="Mobile (9:16)"
-              >
-                9:16
-              </button>
-              
-              <button 
-                onClick={() => handleFormatSelect('1:1')}
-                className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '1:1' ? 'btn-active' : ''} btn-secondary m-2`}
-                title="Square (1:1)"
-              >
-                1:1
-              </button>
-              
-              <button 
-                onClick={() => handleFormatSelect('16:9')}
-                className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '16:9' ? 'btn-active' : ''} btn-accent m-2`}
-                title="Widescreen (16:9)"
-              >
-                16:9
-              </button>
-              
-              <button 
-                onClick={toggleFullScreen}
-                className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFullScreen ? 'btn-active' : ''} btn-info m-2`}
-                title="Full Screen"
-              >
-                Full
-              </button>
+            <div className="flex flex-wrap justify-center mb-2">
+              <div className="flex flex-wrap justify-center">
+                <button 
+                  onClick={() => handleFormatSelect('9:16')}
+                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '9:16' ? 'btn-active' : ''} btn-neutral m-2`}
+                  title="Portrait mode, ideal for mobile"
+                >
+                  9:16
+                </button>
+                
+                <button 
+                  onClick={() => handleFormatSelect('1:1')}
+                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '1:1' ? 'btn-active' : ''} btn-neutral m-2`}
+                  title="Square format, ideal for social media"
+                >
+                  1:1
+                </button>
+                
+                <button 
+                  onClick={() => handleFormatSelect('16:9')}
+                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '16:9' ? 'btn-active' : ''} btn-neutral m-2`}
+                  title="Widescreen format, ideal for presentations"
+                >
+                  16:9
+                </button>
+                
+                <button 
+                  onClick={toggleFullScreen}
+                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFullScreen ? 'btn-active' : ''} btn-info m-2`}
+                  title="Full Screen"
+                >
+                  Full
+                </button>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex flex-col gap-4 w-full max-w-sm mx-auto mt-2" style={{ marginTop: '15px' }}>
-            {customImage ? (
-              <button
-                onClick={handleDownloadGIF}
-                className="btn flex justify-center items-center h-[40px] btn-primary m-2 px-4 w-[240px] mx-auto"
-              >
-                <span>Download GIF</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setShowUploadModal(true);
-                }}
-                className="btn flex justify-center items-center h-[40px] btn-primary m-2 px-4 w-[240px] mx-auto"
-              >
-                <span>Upload Your Logo</span>
-              </button>
-            )}
+            
+            <div className="flex flex-col gap-2 w-full max-w-sm mx-auto" style={{ marginTop: '5px' }}>
+              {customImage ? (
+                <button
+                  onClick={handleDownloadGIF}
+                  className="btn flex justify-center items-center h-[40px] btn-primary px-4 w-[240px] mx-auto"
+                >
+                  <span>Download GIF</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowUploadModal(true);
+                  }}
+                  className="btn flex justify-center items-center h-[40px] btn-primary px-4 w-[240px] mx-auto"
+                >
+                  <span>Upload Your Logo</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
