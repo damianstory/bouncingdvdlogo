@@ -350,6 +350,14 @@ const DVDContainer: React.FC = () => {
     }
   };
   
+  // Create a stable callback for color changes
+  const handleColorChange = useCallback((newColor: { start: string; end: string }) => {
+    // Update the logoColor state when the DVD logo changes color on collision
+    setLogoColor(newColor);
+    // Also update the animation state ref for GIF generation
+    animationStateRef.current.color = newColor;
+  }, []);
+
   // Update animation state
   const updateAnimationState = (timestamp: number) => {
     const { position, direction, size } = animationStateRef.current;
@@ -363,15 +371,36 @@ const DVDContainer: React.FC = () => {
     position.x += direction.x * animationSpeed;
     position.y += direction.y * animationSpeed;
     
+    // Check for collisions and update color if using default logo
+    let collisionOccurred = false;
+    
     // Handle boundary collisions with precise dimensions
     if (position.x <= 0 || position.x + size >= canvasWidth) {
       direction.x *= -1;
       position.x = Math.max(0, Math.min(position.x, canvasWidth - size));
+      collisionOccurred = true;
     }
     
     if (position.y <= 0 || position.y + size >= canvasHeight) {
       direction.y *= -1;
       position.y = Math.max(0, Math.min(position.y, canvasHeight - size));
+      collisionOccurred = true;
+    }
+    
+    // Change color on collision when using default logo (no custom image)
+    if (collisionOccurred && !customImage) {
+      // Pick a random color from colorPresets that's different from current color
+      const currentColor = animationStateRef.current.color;
+      let newColor;
+      do {
+        newColor = colorPresets[Math.floor(Math.random() * colorPresets.length)];
+      } while (newColor.start === currentColor.start && newColor.end === currentColor.end);
+      
+      // Update the color in the animation state
+      animationStateRef.current.color = { ...newColor };
+      
+      // Update the state color to trigger re-render
+      setLogoColor({ ...newColor });
     }
   };
   
@@ -659,15 +688,16 @@ const DVDContainer: React.FC = () => {
     : {
         width: getContainerDimensions(selectedFormat).width,
         height: getContainerDimensions(selectedFormat).height,
-        minHeight: '50vh'
+        minHeight: '50vh',
+        marginBottom: '10px'
       };
 
   return (
     <div className={containerClassName}>
       {!isFullScreen && (
         <div className="w-full max-w-4xl mx-auto mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">DVD Logo GIF Generator</h1>
-          <p className="text-gray-300 text-lg">Create nostalgic bouncing DVD logo animations</p>
+          <h1 className="text-4xl font-bold text-white mb-4">DVD Logo GIF Generator</h1>
+          <p className="text-gray-300 text-lg mb-4" style={{ marginTop: '-15px' }}>Create nostalgic bouncing DVD style logo animations</p>
         </div>
       )}
       
@@ -680,6 +710,11 @@ const DVDContainer: React.FC = () => {
           style={{ 
             ...containerStyle,
             boxShadow: isRetroMode ? '0 0 10px #4cc9f0, 0 0 20px #3a0ca3' : undefined,
+            backgroundColor: '#ffffff',
+            isolation: 'isolate',
+            backgroundImage: 'none',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none'
           }}
         >
           {!customImage && isEmptyContainer && (
@@ -705,6 +740,7 @@ const DVDContainer: React.FC = () => {
             logoColor={logoColor}
             logoSize={logoSize}
             customText={customText}
+            onColorChange={handleColorChange}
           />
           
           {isRetroMode && (
@@ -727,7 +763,7 @@ const DVDContainer: React.FC = () => {
       )}
       
       {isFullScreen && (
-        <div className="fixed bottom-0 left-0 w-full flex justify-center pb-8 z-50">
+        <div style={{ position: 'fixed', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 50 }}>
           <button
             onClick={toggleFullScreen}
             className="btn btn-sm"
@@ -738,7 +774,7 @@ const DVDContainer: React.FC = () => {
       )}
       
       {!isFullScreen && (
-        <div className="w-full max-w-md mx-auto mt-10 mb-6">
+        <div className="w-full max-w-md mx-auto mt-10 mb-6" style={{ marginTop: '15px' }}>
           <div className="text-center mb-6">
             <div className="flex flex-wrap justify-center gap-6 mb-8 p-4 bg-black">
               <button 
@@ -775,13 +811,12 @@ const DVDContainer: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex flex-col gap-4 w-full max-w-sm mx-auto mt-2">
+          <div className="flex flex-col gap-4 w-full max-w-sm mx-auto mt-2" style={{ marginTop: '15px' }}>
             {customImage ? (
               <button
                 onClick={handleDownloadGIF}
-                className="btn btn-md btn-block"
+                className="btn flex justify-center items-center h-[40px] btn-primary m-2 px-4 w-[240px] mx-auto"
               >
-                <FiDownload className="text-lg mr-2" />
                 <span>Download GIF</span>
               </button>
             ) : (
@@ -790,7 +825,7 @@ const DVDContainer: React.FC = () => {
                   const modal = document.getElementById('upload_modal') as HTMLDialogElement;
                   if (modal) modal.showModal();
                 }}
-                className="btn btn-outline btn-primary btn-md max-w-[240px] mx-auto font-bold"
+                className="btn flex justify-center items-center h-[40px] btn-primary m-2 px-4 w-[240px] mx-auto"
               >
                 <span>Upload Your Logo</span>
               </button>
@@ -835,12 +870,12 @@ const DVDContainer: React.FC = () => {
       </dialog>
       
       {showDownloadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-gray-100 border-gray-200 rounded-2xl shadow-2xl border p-8 max-w-md mx-auto">
-            <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">Creating Your GIF</h2>
+        <div className="modal modal-bottom sm:modal-middle fixed inset-0 flex items-center justify-center z-50 bg-black/50">
+          <div className="modal-box text-center" style={{ border: '1px solid black', padding: '24px 20px' }}>
+            <h3 className="font-bold text-lg" style={{ color: 'black' }}>Creating Your GIF</h3>
             
-            <div className="mb-6">
-              <p className="text-gray-700 mb-2 text-center">
+            <div className="py-4 text-center mt-4">
+              <p className="recommendation-text font-medium text-black mb-2 text-center">
                 {encodingProgress < 30 
                   ? "Capturing frames (1/3)" 
                   : encodingProgress < 60
@@ -849,49 +884,49 @@ const DVDContainer: React.FC = () => {
                       ? "Encoding (3/3)"
                       : "Download complete!"}
               </p>
-              <p className="text-indigo-600 font-medium text-center text-lg mb-4">
+              <p className="recommendation-text font-medium text-black text-lg mb-4">
                 {encodingProgress < 100 
                   ? `${encodingProgress}% complete`
                   : 'Your GIF has been downloaded!'}
               </p>
-            </div>
-            
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-6 overflow-hidden">
-              <div 
-                className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${encodingProgress}%` }}
-              ></div>
-            </div>
-            
-            {encodingProgress < 100 && (
-              <div className="flex justify-center mb-6">
-                <div className="animate-spin w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-4 mb-6 overflow-hidden">
+                <div 
+                  className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${encodingProgress}%` }}
+                ></div>
               </div>
-            )}
+              
+              {encodingProgress < 100 && (
+                <div className="flex justify-center mb-6">
+                  <div className="animate-spin w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+            </div>
             
-            <button
-              onClick={() => {
-                if (encodingProgress < 100) {
-                  if (animationFrameRef.current) {
-                    cancelAnimationFrame(animationFrameRef.current);
-                  }
-                  gifGenerationRef.current.isGenerating = false;
-                }
-                setIsGenerating(false);
-                setShowDownloadModal(false);
-              }}
-              className={`btn btn-md btn-block ${
-                encodingProgress < 100
-                  ? 'btn-disabled'
-                  : ''
-              }`}
-            >
-              {encodingProgress < 100 ? 'Cancel' : 'Done'}
-            </button>
+            <div className="modal-action flex justify-center mb-2">
+              <form method="dialog" className="text-center">
+                <button
+                  onClick={() => {
+                    if (encodingProgress < 100) {
+                      if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                      }
+                      gifGenerationRef.current.isGenerating = false;
+                    }
+                    setIsGenerating(false);
+                    setShowDownloadModal(false);
+                  }}
+                  className="btn"
+                >
+                  {encodingProgress < 100 ? 'Cancel' : 'Done'}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
-
+      
       <canvas
         ref={canvasRef}
         className="hidden"
@@ -900,8 +935,8 @@ const DVDContainer: React.FC = () => {
       
       {!isFullScreen && (
         <footer className="mt-12 text-center text-gray-300 text-sm">
-          <p>Create endless DVD logo animations for presentations, websites, or just for fun.</p>
-          <p className="mt-1">Made with 💙 for nostalgic screen savers.</p>
+          <p>Create endless DVD style logo animations for presentations, websites, or just for fun.</p>
+          <p className="mt-1">Made with 💙 by DameDashDeez.</p>
         </footer>
       )}
     </div>

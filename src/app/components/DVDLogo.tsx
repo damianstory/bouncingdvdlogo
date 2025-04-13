@@ -11,6 +11,7 @@ interface DVDLogoProps {
   logoSize?: 'small' | 'medium' | 'large';
   customText?: string;
   speed?: number; // New prop for customizable speed
+  onColorChange?: (newColor: { start: string; end: string }) => void; // New callback for color changes
 }
 
 // Use forwardRef to allow parent component to access this component's DOM
@@ -21,7 +22,8 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
   logoColor,
   logoSize = 'medium',
   customText,
-  speed = 4.5 // Default speed increased from 3 to 4.5
+  speed = 4.5, // Default speed increased from 3 to 4.5
+  onColorChange
 }, ref) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [direction, setDirection] = useState({ x: 1, y: 1 });
@@ -147,8 +149,25 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
         // Change direction if collision
         if (shouldChangeColor) {
           setDirection({ x: newDirectionX, y: newDirectionY });
-          if (!logoColor) { // Only auto-change color if not manually set
-            setColor(colors[Math.floor(Math.random() * colors.length)]);
+          if (!customImage) { // Change color only when not using custom image
+            // Extract start and end colors from the gradient string
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            setColor(randomColor);
+            
+            // Store the new color for useEffect to handle
+            const colorMatch = randomColor.match(/linear-gradient\(135deg,\s+(#[0-9a-f]+),\s+(#[0-9a-f]+)\)/i);
+            if (colorMatch && colorMatch.length >= 3) {
+              const newColorObj = {
+                start: colorMatch[1],
+                end: colorMatch[2]
+              };
+              // Use setTimeout to break out of the render cycle
+              setTimeout(() => {
+                if (onColorChange) {
+                  onColorChange(newColorObj);
+                }
+              }, 0);
+            }
           }
         }
         
@@ -174,12 +193,14 @@ const DVDLogo = forwardRef<HTMLDivElement, DVDLogoProps>(({
       style={{
         transform: `translate(${position.x}px, ${position.y}px)`,
         backgroundImage: customImage ? `url(${customImage})` : color,
+        backgroundColor: '#ffffff',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         transition: 'background-image 0.3s ease-in-out', // Smooth color transition
         width: `${logoSizePixels}px`,
         height: `${logoSizePixels}px`,
-        borderRadius: '50%'
+        borderRadius: '50%',
+        isolation: 'isolate'
       }}
     >
       {customText && (
