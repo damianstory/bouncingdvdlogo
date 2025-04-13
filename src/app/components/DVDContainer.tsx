@@ -335,9 +335,8 @@ const DVDContainer: React.FC = () => {
         if (event.target?.result) {
           setCustomImage(event.target.result as string);
           
-          // Close the dialog modal
-          const modal = document.getElementById('upload_modal') as HTMLDialogElement;
-          if (modal) modal.close();
+          // Close the modal using state
+          setShowUploadModal(false);
           
           // Show a little confirmation
           setTimeout(() => {
