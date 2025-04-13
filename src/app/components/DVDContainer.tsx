@@ -30,6 +30,11 @@ interface GifGenerationState {
 
 type AspectRatio = '9:16' | '1:1' | '16:9';
 
+// Add this helper function for type-safe comparisons
+const isFormat = (format: AspectRatio, target: AspectRatio): boolean => {
+  return format === target;
+};
+
 const getContainerDimensions = (format: AspectRatio) => {
   switch (format) {
     case '9:16':
@@ -694,9 +699,71 @@ const DVDContainer: React.FC = () => {
   return (
     <div className={containerClassName}>
       {!isFullScreen && (
-        <div className="w-full max-w-4xl mx-auto mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">DVD Logo GIF Generator</h1>
-          <p className="text-gray-300 text-lg mb-4" style={{ marginTop: '-15px' }}>Create nostalgic bouncing DVD style logo animations</p>
+        <div className="w-full max-w-4xl mx-auto mb-4 text-center">
+          <h1 className="text-4xl font-bold text-white mb-2">DVD Logo GIF Generator</h1>
+          <p className="text-gray-300 text-lg mb-2" style={{ marginTop: '-5px' }}>Create nostalgic bouncing DVD style logo animations</p>
+        </div>
+      )}
+      
+      {!isFullScreen && isFormat(selectedFormat, '9:16') && (
+        <div className="w-full max-w-md mx-auto mb-2">
+          <div className="text-center">
+            <div className="flex flex-wrap justify-center mb-2">
+              <div className="flex flex-wrap justify-center">
+                <button 
+                  onClick={() => handleFormatSelect('9:16')}
+                  className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFormat(selectedFormat, '9:16') ? 'btn-active' : ''} btn-neutral m-1`}
+                  title="Portrait mode, ideal for mobile"
+                >
+                  9:16
+                </button>
+                
+                <button 
+                  onClick={() => handleFormatSelect('1:1')}
+                  className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFormat(selectedFormat, '1:1') ? 'btn-active' : ''} btn-neutral m-1`}
+                  title="Square format, ideal for social media"
+                >
+                  1:1
+                </button>
+                
+                <button 
+                  onClick={() => handleFormatSelect('16:9')}
+                  className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFormat(selectedFormat, '16:9') ? 'btn-active' : ''} btn-neutral m-1`}
+                  title="Widescreen format, ideal for presentations"
+                >
+                  16:9
+                </button>
+                
+                <button 
+                  onClick={toggleFullScreen}
+                  className={`btn flex justify-center items-center w-[80px] h-[40px] ${isFullScreen ? 'btn-active' : ''} btn-info m-1`}
+                  title="Full Screen"
+                >
+                  Full
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2 w-full max-w-sm mx-auto mb-2">
+              {customImage ? (
+                <button
+                  onClick={handleDownloadGIF}
+                  className="btn flex justify-center items-center h-[40px] btn-primary px-4 w-[220px] mx-auto"
+                >
+                  <span>Download GIF</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowUploadModal(true);
+                  }}
+                  className="btn flex justify-center items-center h-[40px] btn-primary px-4 w-[220px] mx-auto"
+                >
+                  <span>Upload Your Logo</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
       
@@ -751,35 +818,14 @@ const DVDContainer: React.FC = () => {
         </div>
       </div>
       
-      {showConfetti && (
-        <Confetti 
-          width={window.innerWidth} 
-          height={window.innerHeight} 
-          recycle={false} 
-          numberOfPieces={200} 
-          onConfettiComplete={() => setShowConfetti(false)} 
-        />
-      )}
-      
-      {isFullScreen && (
-        <div style={{ position: 'fixed', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 50 }}>
-          <button
-            onClick={toggleFullScreen}
-            className="btn btn-sm"
-          >
-            Exit Full Screen
-          </button>
-        </div>
-      )}
-      
-      {!isFullScreen && (
-        <div className="w-full max-w-md mx-auto mt-10 mb-6" style={{ marginTop: '15px' }}>
-          <div className="text-center mb-6">
+      {!isFullScreen && !isFormat(selectedFormat, '9:16') && (
+        <div className="w-full max-w-md mx-auto mt-4 mb-2">
+          <div className="text-center">
             <div className="flex flex-wrap justify-center mb-2">
               <div className="flex flex-wrap justify-center">
                 <button 
                   onClick={() => handleFormatSelect('9:16')}
-                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '9:16' ? 'btn-active' : ''} btn-neutral m-2`}
+                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFormat(selectedFormat, '9:16') ? 'btn-active' : ''} btn-neutral m-2`}
                   title="Portrait mode, ideal for mobile"
                 >
                   9:16
@@ -787,7 +833,7 @@ const DVDContainer: React.FC = () => {
                 
                 <button 
                   onClick={() => handleFormatSelect('1:1')}
-                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '1:1' ? 'btn-active' : ''} btn-neutral m-2`}
+                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFormat(selectedFormat, '1:1') ? 'btn-active' : ''} btn-neutral m-2`}
                   title="Square format, ideal for social media"
                 >
                   1:1
@@ -795,7 +841,7 @@ const DVDContainer: React.FC = () => {
                 
                 <button 
                   onClick={() => handleFormatSelect('16:9')}
-                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${selectedFormat === '16:9' ? 'btn-active' : ''} btn-neutral m-2`}
+                  className={`btn flex justify-center items-center w-[100px] h-[40px] ${isFormat(selectedFormat, '16:9') ? 'btn-active' : ''} btn-neutral m-2`}
                   title="Widescreen format, ideal for presentations"
                 >
                   16:9
@@ -811,7 +857,7 @@ const DVDContainer: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex flex-col gap-2 w-full max-w-sm mx-auto" style={{ marginTop: '5px' }}>
+            <div className="flex flex-col gap-2 w-full max-w-sm mx-auto">
               {customImage ? (
                 <button
                   onClick={handleDownloadGIF}
@@ -834,6 +880,27 @@ const DVDContainer: React.FC = () => {
         </div>
       )}
 
+      {showConfetti && (
+        <Confetti 
+          width={window.innerWidth} 
+          height={window.innerHeight} 
+          recycle={false} 
+          numberOfPieces={200} 
+          onConfettiComplete={() => setShowConfetti(false)} 
+        />
+      )}
+      
+      {isFullScreen && (
+        <div style={{ position: 'fixed', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 50 }}>
+          <button
+            onClick={toggleFullScreen}
+            className="btn btn-sm"
+          >
+            Exit Full Screen
+          </button>
+        </div>
+      )}
+      
       {showUploadModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
           <div className="bg-white rounded-lg p-6 max-w-md mx-auto shadow-xl">
