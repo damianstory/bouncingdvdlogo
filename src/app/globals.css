@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,6 +7,7 @@
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-rgb: 255, 255, 255;
+  font-family: 'Poppins', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -15,8 +18,21 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+  /* Elegant dark theme with gradient from charcoal to purple/maroon */
+  color: white !important;
+  background: linear-gradient(to bottom, #121212, #2e1a22) !important;
+  background-attachment: fixed !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+
+/* Reset for fullscreen mode to prevent black borders */
+body:has(.fixed.inset-0.z-50.bg-white) {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 /* Modern scrollbar styling */
@@ -43,6 +59,7 @@ body {
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 /* Focus styles for better accessibility */
@@ -112,6 +129,12 @@ body {
   overflow: hidden;
 }
 
+/* Force animation container to have white background */
+div[class*="rounded-xl shadow-"]:not(.fixed) {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+}
+
 /* Retro/DVD-era styling */
 .retro-bg {
   background-color: #1a1a2e;
@@ -174,7 +197,95 @@ body {
   z-index: 1000;
   padding: 8px 16px;
   border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.8);
   color: white;
   cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Force format buttons to be white with black text */
+button[title="Mobile (9:16)"],
+button[title="Square (1:1)"],
+button[title="Widescreen (16:9)"],
+button[title="Full Screen"] {
+  background-color: white !important;
+  color: black !important;
+  border: 2px solid #e5e7eb !important;
+}
+
+button[title="Mobile (9:16)"]:hover,
+button[title="Square (1:1)"]:hover,
+button[title="Widescreen (16:9)"]:hover,
+button[title="Full Screen"]:hover {
+  border-color: #a5b4fc !important;
+  transform: scale(1.05);
+}
+
+/* Style for selected format button */
+button[title="Mobile (9:16)"].active,
+button[title="Square (1:1)"].active,
+button[title="Widescreen (16:9)"].active,
+button[title="Full Screen"].active {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Force Upload and Download buttons to be white with black text */
+button:has(svg[class*="FiUpload"]),
+button:has(svg[class*="FiDownload"]) {
+  background-color: white !important;
+  color: black !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+button:has(svg[class*="FiUpload"]):hover,
+button:has(svg[class*="FiDownload"]):hover {
+  background-color: #f9fafb !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Enhanced text styling for better readability against gradient */
+h1 {
+  font-weight: 700 !important;
+  color: white !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  letter-spacing: -0.025em !important;
+}
+
+p {
+  color: #e5e7eb !important;
+  line-height: 1.6 !important;
+}
+
+/* Override for modal content */
+.bg-white p {
+  color: black !important;
+}
+
+/* Make modal headings black with highest specificity */
+.bg-white h3 {
+  color: black !important;
+}
+
+/* Make recommendation text always black with higher specificity */
+p.recommendation-text {
+  color: black !important;
+}
+
+footer p {
+  color: #9ca3af !important;
+}
+
+/* Add subtle glow to headings */
+.text-4xl {
+  text-shadow: 0 0 30px rgba(79, 70, 229, 0.3);
+}
+
+/* Special class for the dark gradient background */
+.dark-gradient {
+  color: white !important;
+  background: linear-gradient(to bottom, #121212, #2e1a22) !important;
+  background-attachment: fixed !important;
 }

@@ -1,0 +1,204 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    padding: 20px;
+}
+
+#dvd-container {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 30px;
+}
+
+#controls-container {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    width: 800px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#dvd-logo {
+    width: 72px;
+    height: 72px;
+    position: absolute;
+    border-radius: 50%;
+    background: linear-gradient(to right, #ec4899, #eab308);
+    background-size: cover;
+    background-position: center;
+}
+
+.format-selection, .upload-section, .download-section {
+    width: 100%;
+    max-width: 350px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+h2 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #000;
+    font-weight: 400;
+    text-align: center;
+}
+
+.format-options {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    background-color: #f3f4f6;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+button {
+    padding: 8px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+button:hover {
+    background-color: #f3f4f6;
+}
+
+button.active {
+    background-color: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.file-input-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.file-input {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+}
+
+.file-input-label {
+    padding: 8px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.file-input-label:hover {
+    background-color: #f3f4f6;
+}
+
+#file-status {
+    color: #6b7280;
+    font-size: 14px;
+    margin-left: 10px;
+}
+
+#download-btn {
+    background-color: #e5e7eb;
+    color: #6b7280;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-weight: normal;
+    margin: 0 auto;
+    width: 100%; 
+    max-width: 350px;
+}
+
+#download-btn:hover {
+    background-color: #d1d5db;
+}
+
+#download-btn:disabled {
+    background-color: #e5e7eb;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background-color: #e5e7eb;
+    border-radius: 5px;
+    margin-top: 20px;
+    overflow: hidden;
+    display: none;
+}
+
+.progress {
+    height: 100%;
+    background-color: #3b82f6;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+/* Container aspect ratios */
+.ratio-9-16 {
+    width: 450px !important;
+    height: 800px !important;
+}
+
+.ratio-1-1 {
+    width: 800px !important;
+    height: 800px !important;
+}
+
+.ratio-16-9 {
+    width: 800px !important;
+    height: 450px !important;
+}
+
+.upload-section {
+    width: 100%;
+    margin-bottom: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+} 

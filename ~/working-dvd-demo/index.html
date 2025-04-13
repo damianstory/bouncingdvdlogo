@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncing DVD Logo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="dvd-container">
+            <div id="dvd-logo"></div>
+        </div>
+        <div id="controls-container">
+            <div class="format-selection">
+                <h2>Format:</h2>
+                <div class="format-options">
+                    <button data-format="9:16">9:16</button>
+                    <button data-format="1:1">1:1</button>
+                    <button data-format="16:9" class="active">16:9</button>
+                </div>
+            </div>
+            <div class="upload-section">
+                <h2>Upload Logo:</h2>
+                <div class="file-input-container">
+                    <label for="logo-upload" class="file-input-label">Choose File</label>
+                    <input type="file" id="logo-upload" accept="image/*" class="file-input">
+                    <span id="file-status">No file chosen</span>
+                </div>
+            </div>
+            <div class="download-section">
+                <button id="download-btn" disabled>Download GIF</button>
+                <div class="progress-bar" id="progress-container">
+                    <div class="progress" id="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 

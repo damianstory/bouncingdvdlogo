@@ -19,7 +19,9 @@ export default function RootLayout({
         <title>DVD Logo Generator</title>
         <meta name="description" content="Create nostalgic bouncing DVD logo animations" />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased dark-gradient">
+        {children}
+      </body>
     </html>
   );
 }
