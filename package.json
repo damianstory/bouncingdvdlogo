@@ -14,6 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
     "autoprefixer": "^10.4.14",
     "@tippyjs/react": "4.2.6",
     "daisyui": "^3.5.0",
@@ -44,5 +45,8 @@
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "lightningcss": "2.2.0"
   }
 }
