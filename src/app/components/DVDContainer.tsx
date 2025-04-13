@@ -822,8 +822,7 @@ const DVDContainer: React.FC = () => {
             ) : (
               <button
                 onClick={() => {
-                  const modal = document.getElementById('upload_modal') as HTMLDialogElement;
-                  if (modal) modal.showModal();
+                  setShowUploadModal(true);
                 }}
                 className="btn flex justify-center items-center h-[40px] btn-primary m-2 px-4 w-[240px] mx-auto"
               >
@@ -834,48 +833,53 @@ const DVDContainer: React.FC = () => {
         </div>
       )}
 
-      <dialog id="upload_modal" className="modal modal-bottom sm:modal-middle">
-        <div className="modal-box text-center">
-          <h3 className="font-bold text-lg">Upload Your Logo</h3>
-          <div className="py-4 border-2 border-dashed border-gray-400 rounded-lg text-center mt-4 flex flex-col items-center justify-center">
-            <input 
-              id="file-upload"
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              onChange={handleImageUpload}
-            />
-            <label 
-              htmlFor="file-upload" 
-              className="btn btn-md w-full mb-4 py-6"
-            >
-              Choose Image
-            </label>
-            {customImage && <p className="text-green-600 font-medium">File selected: {customImage.split('/').pop()}</p>}
-          </div>
-          
-          <div className="bg-blue-100 p-4 rounded-md mt-2">
-            {!customImage && <p className="recommendation-text font-medium text-black mb-0">Recommended: 400 x 400px</p>}
-            <p className="recommendation-text font-medium text-black">
-              It's going to become a circle
-            </p>
-          </div>
-          
-          <div className="modal-action flex justify-center">
-            <form method="dialog" className="text-center">
-              <button className="btn">Cancel</button>
-            </form>
+      {showUploadModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-auto shadow-xl">
+            <h3 className="font-bold text-lg text-black">Upload Your Logo</h3>
+            <div className="py-4 border-2 border-dashed border-gray-400 rounded-lg text-center mt-4 flex flex-col items-center justify-center">
+              <input 
+                id="file-upload"
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleImageUpload}
+              />
+              <label 
+                htmlFor="file-upload" 
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 cursor-pointer"
+              >
+                Choose Image
+              </label>
+              {customImage && <p className="text-green-600 font-medium mt-2">File selected: {customImage.split('/').pop()}</p>}
+            </div>
+            
+            <div className="bg-blue-100 p-4 rounded-md mt-4">
+              {!customImage && <p className="font-medium text-black mb-1">Recommended: 400 x 400px</p>}
+              <p className="font-medium text-black">
+                It's going to become a circle
+              </p>
+            </div>
+            
+            <div className="flex justify-center mt-4">
+              <button 
+                onClick={() => setShowUploadModal(false)} 
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
-      </dialog>
+      )}
       
       {showDownloadModal && (
-        <div className="modal modal-bottom sm:modal-middle fixed inset-0 flex items-center justify-center z-50 bg-black/50">
-          <div className="modal-box text-center" style={{ border: '1px solid black', padding: '24px 20px' }}>
-            <h3 className="font-bold text-lg" style={{ color: 'black' }}>Creating Your GIF</h3>
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-auto shadow-xl">
+            <h3 className="font-bold text-lg text-black">Creating Your GIF</h3>
             
             <div className="py-4 text-center mt-4">
-              <p className="recommendation-text font-medium text-black mb-2 text-center">
+              <p className="font-medium text-black mb-2 text-center">
                 {encodingProgress < 30 
                   ? "Capturing frames (1/3)" 
                   : encodingProgress < 60
@@ -884,7 +888,7 @@ const DVDContainer: React.FC = () => {
                       ? "Encoding (3/3)"
                       : "Download complete!"}
               </p>
-              <p className="recommendation-text font-medium text-black text-lg mb-4">
+              <p className="font-medium text-black text-lg mb-4">
                 {encodingProgress < 100 
                   ? `${encodingProgress}% complete`
                   : 'Your GIF has been downloaded!'}
@@ -904,24 +908,22 @@ const DVDContainer: React.FC = () => {
               )}
             </div>
             
-            <div className="modal-action flex justify-center mb-2">
-              <form method="dialog" className="text-center">
-                <button
-                  onClick={() => {
-                    if (encodingProgress < 100) {
-                      if (animationFrameRef.current) {
-                        cancelAnimationFrame(animationFrameRef.current);
-                      }
-                      gifGenerationRef.current.isGenerating = false;
+            <div className="flex justify-center mb-2">
+              <button
+                onClick={() => {
+                  if (encodingProgress < 100) {
+                    if (animationFrameRef.current) {
+                      cancelAnimationFrame(animationFrameRef.current);
                     }
-                    setIsGenerating(false);
-                    setShowDownloadModal(false);
-                  }}
-                  className="btn"
-                >
-                  {encodingProgress < 100 ? 'Cancel' : 'Done'}
-                </button>
-              </form>
+                    gifGenerationRef.current.isGenerating = false;
+                  }
+                  setIsGenerating(false);
+                  setShowDownloadModal(false);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              >
+                {encodingProgress < 100 ? 'Cancel' : 'Done'}
+              </button>
             </div>
           </div>
         </div>
