@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "node node_modules/lightningcss/install.js"
+    "postinstall": "npm rebuild --platform=linux --arch=x64"
   },
   "keywords": [],
   "author": "",
